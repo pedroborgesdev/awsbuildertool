@@ -1,0 +1,28 @@
+.env
+.env.*
+!.env.example
+
+# Builds and runtime output
+bin/
+generated/
+resultados/
+output/
+web/dist/
+web/node_modules/
+web/*.tsbuildinfo
+web/vite.config.js
+web/vite.config.d.ts
+generate-*.py
+design_system/vendor/
+
+# Caches and local tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.coverage
+coverage.out
+*.log
+.DS_Store
+.idea/
+.vscode/

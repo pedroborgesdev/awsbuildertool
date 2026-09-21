@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+bin
+generated
+resultados
+web/node_modules
+web/dist
+__pycache__
+.venv
+*.py[cod]
+*.log
+output
+generate-*.py
+design_system/.git
+design_system/vendor
