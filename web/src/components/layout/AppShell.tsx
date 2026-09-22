@@ -43,6 +43,11 @@ export function SiteHeader({
         </button>
         <div className="header-actions">
           {view === 'landing' && (
+            <a className="header-github" href="https://github.com/pedroborgesdev/awsbuildertool" target="_blank" rel="noreferrer">
+              {t.header.github} <span aria-hidden="true">↗</span>
+            </a>
+          )}
+          {view === 'landing' && (
             <Button className="header-cta" onClick={onStart} disabled={!canCreate}>
               {t.header.start}
             </Button>

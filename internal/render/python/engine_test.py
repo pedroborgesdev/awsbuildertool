@@ -289,7 +289,7 @@ class EngineTests(unittest.TestCase):
 
     def test_coarse_grid_uses_nine_primary_columns(self):
         expected={(1080,1080):(120,9),(1080,1350):(120,9),(1080,1920):(120,9),
-                  (1200,1500):(120,10),(1600,900):(100,16)}
+                  (1200,1500):(120,10),(1600,900):(100,16),(1920,1080):(120,16)}
         for size,(module,columns) in expected.items():
             with self.subTest(size=size):
                 p=Page(*size,True,self.design,1)
@@ -399,7 +399,7 @@ class EngineTests(unittest.TestCase):
                   ("Certify yourself","Community badges and projects.","trophy"),
                   ("Innovate","Challenges to grow your skills.","lightning")]],
               "cta":"Join Builder Center","iconIntent":"community"}
-        for size in ((1080,1080),(1080,1350),(1080,1920),(1600,900)):
+        for size in ((1080,1080),(1080,1350),(1080,1920),(1600,900),(1920,1080)):
             with self.subTest(size=size):
                 result=render_page(page,0,1,size,self.design)
                 self.assertFalse(overlap(result.regions["item-5"]["box"],result.regions["cta"]["box"]))

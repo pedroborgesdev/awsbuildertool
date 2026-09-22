@@ -1,4 +1,4 @@
-import { contentLevels, formats } from '../../constants'
+import { contentLevels, formatChoices } from '../../constants'
 import { useI18n } from '../../i18n/context'
 import { ChoiceCard } from '../ui/ChoiceCard'
 import { Field } from '../ui/Field'
@@ -18,11 +18,11 @@ export function FormatSection({ form, onUpdate }: FormatSectionProps) {
       <fieldset>
         <legend className="field-label mb-3">{t.publish.where}</legend>
         <div className="format-grid" role="radiogroup" aria-label={t.publish.whereLabel}>
-          {formats.map((format) => (
-            <ChoiceCard key={format.value} selected={form.platform === format.value} onSelect={() => onUpdate('platform', format.value)}>
-              <strong className="block text-sm">{format.dimensions}</strong>
+          {formatChoices.map((choice) => (
+            <ChoiceCard key={choice.id} selected={choice.values.includes(form.platform)} onSelect={() => onUpdate('platform', choice.values[0])}>
+              <strong className="block text-sm">{choice.dimensions}</strong>
               <span className="mt-2 block text-xs leading-5 text-muted-light">
-                {format.value === 'linkedin-document' ? t.publish.recommendedPdf : t.publish.recommended(format.channel)}
+                {choice.pdf ? t.publish.pdfSlides : t.publish.recommended(choice.channels)}
               </span>
             </ChoiceCard>
           ))}

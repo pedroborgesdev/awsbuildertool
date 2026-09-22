@@ -67,6 +67,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   padding: 10px 20px;
 }
 .header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.header-github { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; color: #fff; font-size: 12px; font-weight: 800; text-decoration: none; }
+.header-github:hover, .header-github:focus-visible { color: #00e582; outline: 0; }
 .header-cta { display: none; }
 .header-actions .button-secondary { min-height: 40px; }
 .cost-card { border: 1px solid #465463; border-left: 4px solid #ff9900; background: #1d2631; padding: 16px; }
@@ -266,25 +268,22 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
 .generated-card figcaption span:first-child { color: #00e582; font-weight: 900; }
 
 .image-viewer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: auto; background: rgba(0, 0, 0, .84); padding: 20px; backdrop-filter: blur(3px); }
-.viewer-grid { display: grid; width: fit-content; max-width: 100%; height: auto; max-height: calc(100vh - 40px); min-height: 0; grid-template-columns: minmax(0, max-content) 220px; grid-template-rows: auto auto auto; border: 1px solid #465463; background: #10161e; box-shadow: 16px 16px 0 rgba(0, 0, 0, .28); }
+.viewer-grid { display: grid; width: fit-content; max-width: 100%; height: auto; max-height: calc(100vh - 40px); min-height: 0; grid-template-columns: minmax(0, max-content); grid-template-rows: auto auto auto; border: 1px solid #465463; background: #10161e; box-shadow: 16px 16px 0 rgba(0, 0, 0, .28); }
 .viewer-header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #34404d; background: #161d26; padding: 14px 16px 14px 20px; }
 .viewer-filename { margin-top: 5px; color: #aab3bd; font-size: 11px; overflow-wrap: anywhere; }
 .viewer-close { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; border: 1px solid #ff57e9; background: #ff57e9; color: #161d26; font-size: 29px; font-weight: 900; line-height: 1; }
 .viewer-close:hover, .viewer-close:focus-visible { border-color: #fff; background: #fff; outline: 0; }
-.viewer-stage { display: grid; width: fit-content; max-width: calc(100vw - 300px); min-width: 0; min-height: 0; place-items: center; overflow: hidden; padding: 20px; background-color: #161d26; background-image: linear-gradient(to right, rgba(66,180,255,.11) 1px, transparent 1px), linear-gradient(to bottom, rgba(66,180,255,.11) 1px, transparent 1px); background-size: 90px 90px; }
-.viewer-stage img { display: block; width: auto; height: auto; max-width: min(1200px, calc(100vw - 340px)); max-height: calc(100vh - 190px); object-fit: contain; box-shadow: 8px 8px 0 rgba(0,0,0,.32); }
-.viewer-downloads { min-width: 0; overflow-y: auto; border-left: 1px solid #34404d; background: #1d2631; padding: 18px 14px; scrollbar-color: #465463 #1d2631; }
-.viewer-download-list { display: grid; gap: 7px; margin-top: 15px; }
-.viewer-download-list a { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; border: 1px solid #465463; padding: 10px; color: #fff; text-decoration: none; font-size: 10px; }
-.viewer-download-list a:hover, .viewer-download-list a:focus-visible, .viewer-download-list .viewer-download-active { border-color: #42b4ff; background: rgba(66,180,255,.09); outline: 0; }
-.viewer-download-list a span:first-child { color: #42b4ff; font-weight: 900; }
-.viewer-download-list a span:last-child { color: #00e582; font-size: 15px; }
-.viewer-navigation { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr); align-items: center; gap: 12px; border-top: 1px solid #34404d; background: #161d26; padding: 12px; }
+.viewer-stage { display: grid; width: fit-content; max-width: calc(100vw - 80px); min-width: 0; min-height: 0; place-items: center; overflow: hidden; padding: 20px; background-color: #161d26; background-image: linear-gradient(to right, rgba(66,180,255,.11) 1px, transparent 1px), linear-gradient(to bottom, rgba(66,180,255,.11) 1px, transparent 1px); background-size: 90px 90px; }
+.viewer-stage img { display: block; width: auto; height: auto; max-width: min(1200px, calc(100vw - 120px)); max-height: calc(100vh - 190px); object-fit: contain; box-shadow: 8px 8px 0 rgba(0,0,0,.32); }
+.viewer-navigation { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(120px, 1fr) auto auto minmax(120px, 1fr); align-items: center; gap: 12px; border-top: 1px solid #34404d; background: #161d26; padding: 12px; }
 .viewer-navigation > span { color: #aab3bd; font-size: 10px; text-align: center; }
 .viewer-navigation button { min-height: 44px; border: 1px solid #465463; background: transparent; color: #fff; font-size: 11px; font-weight: 900; }
 .viewer-navigation button:first-child { justify-self: start; padding: 0 18px; }
 .viewer-navigation button:last-child { justify-self: end; border-color: #00e582; background: #00e582; padding: 0 18px; color: #161d26; }
 .viewer-navigation button:hover:not(:disabled), .viewer-navigation button:focus-visible { border-color: #42b4ff; background: #42b4ff; color: #161d26; outline: 0; }
+.viewer-download { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #42b4ff; background: transparent; padding: 0 16px; color: #fff; font-size: 11px; font-weight: 900; text-decoration: none; }
+.viewer-download svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.viewer-download:hover, .viewer-download:focus-visible { border-color: #42b4ff; background: #42b4ff; color: #161d26; outline: 0; }
 
 .gallery-loading { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .gallery-loading p { color: #00e582; font-size: 12px; text-align: center; }
@@ -297,7 +296,10 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
 .download-file b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .landing, .result-page, .creator-layout { width: min(1180px, 100%); margin: 0 auto; }
-.landing { display: grid; gap: 72px; padding: 48px 20px 80px; }
+.landing { display: grid; gap: 72px; padding: 28px 20px 80px; }
+.landing-top { display: grid; gap: 28px; }
+.home-notice { display: grid; gap: 8px; border: 1px solid #34404d; border-left: 4px solid #42b4ff; background: rgba(29, 38, 49, .92); padding: 16px 18px; }
+.home-notice p:last-child { max-width: 78ch; color: #d5dde4; font-size: 14px; line-height: 1.6; }
 .hero { display: grid; gap: 28px; align-items: stretch; }
 .hero-copy, .mosaic, .mosaic-card { min-width: 0; }
 .page-lede { max-width: 42rem; margin-top: 18px; color: #aab3bd; font-size: 16px; line-height: 1.7; }
@@ -430,15 +432,12 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
   .image-viewer { padding: 0; }
   .viewer-grid { width: 100%; max-height: none; min-height: 100dvh; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; border: 0; box-shadow: none; }
   .viewer-stage { width: 100%; max-width: 100%; padding: 12px; }
-  .viewer-stage img { max-width: 100%; max-height: calc(100dvh - 245px); }
-  .viewer-downloads { grid-row: 3; display: flex; align-items: center; gap: 12px; overflow-x: auto; border-top: 1px solid #34404d; border-left: 0; padding: 10px 12px; }
-  .viewer-downloads > .eyebrow { flex: 0 0 auto; }
-  .viewer-download-list { display: flex; flex: 0 0 auto; margin: 0; }
-  .viewer-download-list a { min-width: 74px; }
-  .viewer-navigation { grid-row: 4; padding: 10px; }
+  .viewer-stage img { max-width: 100%; max-height: calc(100dvh - 160px); }
+  .viewer-navigation { grid-row: 3; grid-template-columns: 1fr auto 1fr; padding: 10px; }
   .viewer-navigation > span { display: none; }
-  .viewer-navigation { grid-template-columns: 1fr 1fr; }
   .viewer-navigation button { width: 100%; justify-self: stretch !important; }
+  .viewer-download { width: 44px; height: 44px; min-height: 44px; padding: 0; }
+  .viewer-download span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 }
 
 .mini-button { min-height: 36px; border: 1px solid #465463; background: transparent; padding: 0 12px; color: #fff; font-size: 11px; font-weight: 800; }

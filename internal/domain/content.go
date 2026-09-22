@@ -55,7 +55,7 @@ func WordBudget(brief GenerateRequest, role string) int {
 	if role == "cta" {
 		limit = min(limit, 65)
 	}
-	if brief.Platform == "instagram-square" || brief.Platform == "youtube-community" || brief.Platform == "x-landscape" {
+	if brief.Platform == "instagram-square" || brief.Platform == "youtube-community" || brief.Platform == "x-landscape" || brief.Platform == "linkedin-document" {
 		limit = min(limit, 90)
 	}
 	return limit

@@ -17,7 +17,12 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
 
   return (
     <main className="landing">
-      <section className="hero">
+      <div className="landing-top">
+        <aside className="home-notice" role="note">
+          <p className="eyebrow text-blue">{t.landing.noticeEyebrow}</p>
+          <p>{t.landing.notice}</p>
+        </aside>
+        <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow text-pink">{t.landing.eyebrow}</p>
           <h1 className="display-title">{t.landing.title}</h1>
@@ -46,7 +51,8 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
             <h2>{t.landing.mosaic.lookTitle}</h2>
           </article>
         </div>
-      </section>
+        </section>
+      </div>
 
       <section className="landing-section" aria-labelledby="channels-title">
         <div className="section-heading">

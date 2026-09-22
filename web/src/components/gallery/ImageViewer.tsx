@@ -51,29 +51,16 @@ export function ImageViewer({ images, index, onChange, onClose }: ImageViewerPro
           <img src={current.url} alt={`${t.viewer.alt(index + 1)}: ${current.name}`} />
         </div>
 
-        <aside className="viewer-downloads app-scrollbar" aria-label={t.viewer.downloads}>
-          <p className="eyebrow text-blue">{t.viewer.download}</p>
-          <div className="viewer-download-list">
-            {images.map((image, imageIndex) => (
-              <a
-                key={image.url}
-                className={imageIndex === index ? 'viewer-download-active' : ''}
-                href={image.url}
-                download={image.name.split('/').pop()}
-                onClick={() => onChange(imageIndex)}
-              >
-                <span>{String(imageIndex + 1).padStart(2, '0')}</span>
-                <b>PNG</b>
-                <span aria-hidden="true">↓</span>
-              </a>
-            ))}
-          </div>
-        </aside>
-
         <footer className="viewer-navigation">
           <button type="button" onClick={previous} disabled={images.length < 2}>
             <span aria-hidden="true">←</span> {t.viewer.back}
           </button>
+          <a className="viewer-download" href={current.url} download={current.name.split('/').pop()}>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 1.5v8M5 7.5 8 10.5 11 7.5M2.5 13.5h11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" />
+            </svg>
+            <span>{t.viewer.download}</span>
+          </a>
           <span>{current.width} × {current.height}</span>
           <button type="button" onClick={next} disabled={images.length < 2}>
             {t.viewer.next} <span aria-hidden="true">→</span>

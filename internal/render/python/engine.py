@@ -22,13 +22,13 @@ VERSION = "5.2.0"
 FORMATS = {
     "instagram-portrait": (1080, 1350), "instagram-square": (1080, 1080),
     "instagram-story": (1080, 1920), "linkedin-portrait": (1080, 1350),
-    "linkedin-document": (1080, 1350), "x-landscape": (1600, 900),
+    "linkedin-document": (1920, 1080), "x-landscape": (1600, 900),
     "facebook-portrait": (1200, 1500), "youtube-community": (1080, 1080),
 }
 COLORS = {"ink": "#161D26", "paper": "#F8F8FA", "white": "#FFFFFF", "line_dark": "#2B3542",
           "line_light": "#DEDEE3", "green": "#00E582", "pink": "#FF57E9", "blue": "#42B4FF",
           "purple": "#AD5CFF", "orange": "#FF9900"}
-GRID_MODULES = {1080: 120, 1200: 120, 1600: 100}
+GRID_MODULES = {1080: 120, 1200: 120, 1600: 100, 1920: 120}
 
 
 def normalize(value):
@@ -169,6 +169,7 @@ class Page:
     def __init__(self, width, height, dark, design, number, accent_name=None):
         self.w, self.h, self.dark, self.design, self.number = width, height, dark, design, number
         # Coarse modular grid: nine columns at the primary 1080px formats.
+        # 1920×1080 uses the same 120px cell, which lands on 16 square columns.
         # The module stays integral so every structural cell remains square.
         self.g = GRID_MODULES.get(width,max(1,width//9))
         # Landscape width is not extra vertical space for larger type.

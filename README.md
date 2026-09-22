@@ -1,4 +1,9 @@
 <p align="center">
+  <strong>Note.</strong> Builder Tool is here to add to AWS Builder Center. It does not try to replace Builder Center or to copy it.<br>
+  The project is made by participants of the AWS student project in Brazil.
+</p>
+
+<p align="center">
   <img src="docs/images/logo.png" alt="Builder Tool" width="84">
 </p>
 
@@ -70,14 +75,12 @@ Each option is a resolution, with the channel it is recommended for written insi
 
 | Resolution | Recommended for |
 | --- | --- |
-| 1080 × 1350 | Instagram |
-| 1080 × 1080 | Instagram |
+| 1080 × 1350 | Instagram and LinkedIn |
+| 1080 × 1080 | Instagram and YouTube |
 | 1080 × 1920 | Instagram |
-| 1080 × 1350 | LinkedIn |
-| 1080 × 1350 | a LinkedIn PDF |
+| 1920 × 1080 | PDF / Slides |
 | 1600 × 900 | X |
 | 1080 × 1500 | Facebook |
-| 1080 × 1080 | YouTube |
 
 Then choose how much the post should say. **Essential** keeps one idea and very little text. **Balanced** leaves room for short examples. **Deep** carries more explanation without shrinking the type. A set can be anywhere from 1 to 10 pages. This one uses four, balanced.
 

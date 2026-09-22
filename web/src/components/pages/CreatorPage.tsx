@@ -1,5 +1,5 @@
 import { useEffect, type FormEvent } from 'react'
-import { canVisitStep, colorThemes, contentLevels, creatorStepIds, formats, pageThemes } from '../../constants'
+import { canVisitStep, choiceFor, colorThemes, contentLevels, creatorStepIds, pageThemes } from '../../constants'
 import { useI18n } from '../../i18n/context'
 import { BriefForm } from '../form/BriefForm'
 import type { AppConfig, GenerateRequest } from '../../types'
@@ -32,7 +32,7 @@ export function CreatorPage({
   const { t } = useI18n()
   const stepId = creatorStepIds[step]
   const current = t.steps[stepId]
-  const format = formats.find((item) => item.value === form.platform) ?? formats[0]
+  const format = choiceFor(form.platform)
   const depth = contentLevels.find((item) => item === form.contentLevel)
   const color = colorThemes.find((item) => item === form.colorTheme)
   const appearance = pageThemes.find((item) => item === form.pageTheme)
@@ -90,7 +90,7 @@ export function CreatorPage({
 
         <aside className="creator-aside" aria-label={t.creator.summaryLabel}>
           <article className="brief-preview">
-            <p className="eyebrow text-green">{format.channel}</p>
+            <p className="eyebrow text-green">{format.pdf ? t.publish.pdfSlides : format.channels.join(' · ')}</p>
             <h2>{form.theme.trim() || t.creator.previewTitle}</h2>
             <p>{form.goal.trim() || t.creator.previewGoal}</p>
             <ul>

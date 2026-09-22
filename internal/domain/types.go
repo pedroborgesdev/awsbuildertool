@@ -44,7 +44,7 @@ var Formats = map[string]Format{
 	"instagram-square":   {Label: "Instagram — quadrado", Width: 1080, Height: 1080, Description: "carrossel quadrado 1:1"},
 	"instagram-story":    {Label: "Instagram Stories", Width: 1080, Height: 1920, Description: "story vertical 9:16"},
 	"linkedin-portrait":  {Label: "LinkedIn — retrato", Width: 1080, Height: 1350, Description: "carrossel vertical 4:5"},
-	"linkedin-document":  {Label: "LinkedIn — documento", Width: 1080, Height: 1350, Description: "documento PDF vertical 4:5"},
+	"linkedin-document":  {Label: "PDF / Slides", Width: 1920, Height: 1080, Description: "PDF e slides horizontais 16:9"},
 	"x-landscape":        {Label: "X — landscape", Width: 1600, Height: 900, Description: "horizontal post 16:9"},
 	"facebook-portrait":  {Label: "Facebook — portrait", Width: 1200, Height: 1500, Description: "vertical post 4:5"},
 	"youtube-community":  {Label: "YouTube — community", Width: 1080, Height: 1080, Description: "square post 1:1"},
