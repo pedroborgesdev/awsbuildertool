@@ -134,7 +134,7 @@ export function PhotoCropper({ source, onCancel, onConfirm }: PhotoCropperProps)
             <span className="field-label">Zoom</span>
             <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} />
           </label>
-          <p className="text-xs leading-5 text-muted-light">Drag the photo inside the square. The result will be exported at 1080 × 1080 px.</p>
+          <p className="text-xs leading-5 text-muted-light">Drag the photo inside the square.</p>
         </div>
         <footer className="crop-actions">
           <Button variant="secondary" onClick={onCancel}>Cancel</Button>

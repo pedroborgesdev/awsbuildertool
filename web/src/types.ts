@@ -11,7 +11,7 @@ export type Platform =
 export type ContentLevel = 'essential' | 'balanced' | 'deep'
 export type ColorTheme = 'pink' | 'green' | 'blue' | 'orange' | 'purple' | 'colorful'
 export type PageTheme = 'dark' | 'light' | 'both'
-export type StudioMode = 'brief' | 'prompt' | 'result'
+export type AppView = 'landing' | 'create' | 'result'
 export type Accent = 'pink' | 'green' | 'orange' | 'blue'
 
 export interface GenerateRequest {

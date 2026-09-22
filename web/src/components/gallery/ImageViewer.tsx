@@ -41,7 +41,6 @@ export function ImageViewer({ images, index, onChange, onClose }: ImageViewerPro
         <header className="viewer-header">
           <div>
             <p className="eyebrow text-green">Post {String(index + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}</p>
-            <p className="viewer-filename">{current.name.split('/').pop()}</p>
           </div>
           <Button variant="close" onClick={onClose} autoFocus aria-label="Close viewer">×</Button>
         </header>

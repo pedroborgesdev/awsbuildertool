@@ -16,7 +16,7 @@ export function Alert({ children, className = 'mt-5', role }: AlertProps) {
 
 export function ErrorAlert({ children }: { children: ReactNode }) {
   return (
-    <div role="alert" className="mt-6 border-l-4 border-orange bg-orange/10 p-4 text-sm text-orange">
+    <div role="alert" className="mb-6 border-l-4 border-orange bg-orange/10 p-4 text-sm text-orange">
       {children}
     </div>
   )

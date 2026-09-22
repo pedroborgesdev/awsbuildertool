@@ -32,6 +32,44 @@ export const pageThemes: Array<{ value: PageTheme; label: string; description: s
   { value: 'both', label: 'Both', description: 'Alternates light and dark backgrounds across the campaign.' },
 ]
 
+export const creatorSteps = [
+  {
+    label: 'Idea',
+    title: 'What are you sharing?',
+    description: 'Start with the point of the post. Channel and visual choices come next.',
+  },
+  {
+    label: 'Publish',
+    title: 'Choose where it belongs.',
+    description: 'Pick a channel, how many pages to make, and how much to say.',
+  },
+  {
+    label: 'Look',
+    title: 'Set the visual direction.',
+    description: 'Color and contrast keep the set consistent from the first page to the last.',
+  },
+  {
+    label: 'Finish',
+    title: 'Sign it and review.',
+    description: 'Add your name, a call to action, and anything the post must get right.',
+  },
+] as const
+
+export function stepIssue(step: number, form: GenerateRequest) {
+  if (step === 0) {
+    if (form.theme.trim().length < 3) return 'Give the post a topic of at least 3 characters.'
+    if (form.goal.trim().length < 3) return 'Say what the post should achieve.'
+  }
+  return ''
+}
+
+export function canVisitStep(step: number, form: GenerateRequest) {
+  for (let index = 0; index < step; index += 1) {
+    if (stepIssue(index, form)) return false
+  }
+  return true
+}
+
 export const initialForm: GenerateRequest = {
   useAboutFooter: true,
   aboutName: '',

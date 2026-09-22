@@ -11,7 +11,7 @@ export function PhotoControl({ photo, onImport, onRemove }: PhotoControlProps) {
     <div>
       <p className="field-label mb-2">Your photo</p>
       <div className="about-photo-control">
-        {photo ? <img src={photo} alt="Photo cropped for the footer" /> : <span aria-hidden="true">1080<br />×<br />1080</span>}
+        {photo ? <img src={photo} alt="Photo cropped for the footer" /> : <span aria-hidden="true">Photo</span>}
         <label className="mini-button about-photo-import">
           Import
           <input
