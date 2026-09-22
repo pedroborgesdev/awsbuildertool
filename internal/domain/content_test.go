@@ -7,7 +7,7 @@ import (
 )
 
 func TestEditorialContract(t *testing.T) {
-	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 1, ContentLevel: "balanced", LastPageCTA: true}
+	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 1, ContentLevel: "balanced", LastPageCTA: true, AdditionalContext: strings.Repeat("a", 400)}
 	valid := func() CampaignDraft {
 		return CampaignDraft{Version: 1, Brief: brief, Pages: []PageContent{{Role: "cover", Title: "Learn from examples", CTA: "Save for later", IconIntent: "key"}}}
 	}
@@ -36,7 +36,7 @@ func TestEditorialContract(t *testing.T) {
 }
 
 func TestChartRequiresPercentagesThatSumToOneHundred(t *testing.T) {
-	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 1, ContentLevel: "balanced"}
+	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 1, ContentLevel: "balanced", AdditionalContext: strings.Repeat("a", 400)}
 	draft := CampaignDraft{Version: 1, Brief: brief, Pages: []PageContent{{
 		Role: "chart", Title: "Distribution", IconIntent: "chart", Items: []ContentItem{
 			{Title: "Produto", IconIntent: "package", Value: 60},
@@ -53,7 +53,7 @@ func TestChartRequiresPercentagesThatSumToOneHundred(t *testing.T) {
 }
 
 func TestExpandedListAndComparisonCardinality(t *testing.T) {
-	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-portrait", PostCount: 1, ContentLevel: "deep"}
+	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-portrait", PostCount: 1, ContentLevel: "deep", AdditionalContext: strings.Repeat("a", 400)}
 	items := make([]ContentItem, 9)
 	for i := range items {
 		items[i] = ContentItem{Title: "Item", IconIntent: "key"}

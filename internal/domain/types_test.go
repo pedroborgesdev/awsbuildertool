@@ -6,15 +6,17 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"strings"
 	"testing"
 )
 
 func validRequest() GenerateRequest {
 	return GenerateRequest{
-		Theme:     "CI/CD na AWS",
-		Goal:      "Teach the continuous delivery flow",
-		Platform:  "instagram-portrait",
-		PostCount: 5,
+		Theme:             "CI/CD na AWS",
+		Goal:              "Teach the continuous delivery flow",
+		Platform:          "instagram-portrait",
+		PostCount:         5,
+		AdditionalContext: strings.Repeat("a", 400),
 	}
 }
 

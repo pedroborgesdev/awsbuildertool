@@ -16,7 +16,7 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 func testBrief() domain.GenerateRequest {
-	b := domain.GenerateRequest{Theme: "CI/CD", Goal: "Teach students", Platform: "instagram-square", PostCount: 3, ContentLevel: "balanced", LastPageCTA: true}
+	b := domain.GenerateRequest{Theme: "CI/CD", Goal: "Teach students", Platform: "instagram-square", PostCount: 3, ContentLevel: "balanced", LastPageCTA: true, AdditionalContext: strings.Repeat("a", 400)}
 	b.Normalize("test/model")
 	return b
 }

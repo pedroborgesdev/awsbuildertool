@@ -23,9 +23,6 @@ export function ActionSection({ form, onUpdate }: ActionSectionProps) {
             <Toggle checked={form.firstPageCta} onChange={(value) => onUpdate('firstPageCta', value)} label="Call to action on the first page" />
             <Toggle checked={form.lastPageCta} onChange={(value) => onUpdate('lastPageCta', value)} label="Call to action on the last page" />
           </div>
-          <Field label="Anything else to include" hint={`${form.additionalContext.length}/4000`}>
-            <textarea maxLength={4000} rows={4} value={form.additionalContext} onChange={(e) => onUpdate('additionalContext', e.target.value)} placeholder="Facts, examples, or topics to leave out." />
-          </Field>
         </div>
       </details>
     </div>

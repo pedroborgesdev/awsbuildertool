@@ -2,16 +2,18 @@ package render
 
 import (
 	"context"
-	"github.com/pedroborges/universal-post-creator/internal/domain"
-	"github.com/pedroborges/universal-post-creator/internal/hf"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/pedroborges/universal-post-creator/internal/domain"
+	"github.com/pedroborges/universal-post-creator/internal/hf"
 )
 
 func TestTrustedCampaignAndArtifactValidation(t *testing.T) {
-	brief := domain.GenerateRequest{Theme: "Python data", Goal: "Validate render", Platform: "instagram-square", PostCount: 5, ContentLevel: "balanced", LastPageCTA: true}
+	brief := domain.GenerateRequest{Theme: "Python data", Goal: "Validate render", Platform: "instagram-square", PostCount: 5, ContentLevel: "balanced", LastPageCTA: true, AdditionalContext: strings.Repeat("a", 400)}
 	brief.Normalize("mock")
 	draft := hf.MockDraft(brief)
 	// Quotes and code-like editorial data must not become Python source.

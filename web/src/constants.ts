@@ -38,7 +38,7 @@ export const creatorSteps = [
   {
     label: 'Idea',
     title: 'What are you sharing?',
-    description: 'Start with the point of the post. Channel and visual choices come next.',
+    description: 'Start with the point of the post and the context it needs to get right.',
   },
   {
     label: 'Publish',
@@ -66,6 +66,7 @@ export function stepIssue(step: number, form: GenerateRequest) {
   if (step === 0) {
     if (form.theme.trim().length < 3) return 'Give the post a topic of at least 3 characters.'
     if (form.goal.trim().length < 3) return 'Say what the post should achieve.'
+    if (form.additionalContext.trim().length < 400) return 'Context needs at least 400 characters.'
   }
   return ''
 }

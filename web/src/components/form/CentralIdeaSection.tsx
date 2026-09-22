@@ -18,6 +18,9 @@ export function CentralIdeaSection({ form, onUpdate }: CentralIdeaSectionProps) 
       <Field label="Who is it for?">
         <input value={form.audience} onChange={(e) => onUpdate('audience', e.target.value)} placeholder="E.g.: Developers learning AWS" />
       </Field>
+      <Field label="Context" hint={`${form.additionalContext.trim().length}/8000`}>
+        <textarea className="context-input" required minLength={400} maxLength={8000} rows={12} value={form.additionalContext} onChange={(e) => onUpdate('additionalContext', e.target.value)} placeholder="Facts, examples, sources, and anything the post must include or leave out." />
+      </Field>
     </div>
   )
 }

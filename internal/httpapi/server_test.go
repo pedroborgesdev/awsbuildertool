@@ -89,6 +89,7 @@ func TestGenerateInMockMode(t *testing.T) {
 	server := New(cfg, logger)
 	body := map[string]any{
 		"theme": "CI/CD", "goal": "Teach students", "platform": "instagram-portrait", "postCount": 5,
+		"additionalContext": strings.Repeat("a", 400),
 	}
 	payload, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(payload))
@@ -123,7 +124,7 @@ func TestGenerateRetriesRenderingWithoutRegeneratingContent(t *testing.T) {
 	renderer := &countingFailRenderer{}
 	server.hf = generator
 	server.render = renderer
-	body := []byte(`{"theme":"CI/CD","goal":"Teach students","platform":"instagram-square","postCount":3}`)
+	body := []byte(`{"theme":"CI/CD","goal":"Teach students","platform":"instagram-square","postCount":3,"additionalContext":"` + strings.Repeat("a", 400) + `"}`)
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body)))
 	if response.Code != http.StatusUnprocessableEntity {
@@ -146,7 +147,7 @@ func TestGenerateDoesNotCallAIWhenRendererIsUnavailable(t *testing.T) {
 	generator := &countingGenerator{}
 	server.hf = generator
 	server.render = unavailableRenderer{}
-	body := []byte(`{"theme":"CI/CD","goal":"Teach students","platform":"instagram-square","postCount":3}`)
+	body := []byte(`{"theme":"CI/CD","goal":"Teach students","platform":"instagram-square","postCount":3,"additionalContext":"` + strings.Repeat("a", 400) + `"}`)
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body)))
 	if response.Code != http.StatusServiceUnavailable {
