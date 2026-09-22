@@ -1,119 +1,132 @@
-# Universal Post Studio
+<p align="center">
+  <img src="docs/images/logo.png" alt="Builder Tool" width="84">
+</p>
 
-Go + React + TypeScript application for generating complete posts with the local AWS Builder Center design system.
+<h1 align="center">Builder Tool</h1>
 
-## Workflow
+<p align="center">For AWS Builder Center</p>
 
-1. Fill in the brief and click **Generate posts**.
-2. The AI produces only structured editorial content.
-3. The renderer calculates three valid compositions for each page and selects one.
-4. Open finished pages at full size or download the PDF and overview.
+<p align="center">
+  <a href="https://buildertool.app"><strong>buildertool.app</strong></a>
+</p>
 
-The form includes an `About you` section with an optional name, subtitle, and photo. The photo is cropped in the browser with drag and zoom, exported at `1080x1080`, and reduced only during footer composition. The brief accepts color direction and light, dark, or mixed pages.
+<p align="center">
+  Turn a short brief into a set of posts for the channels where you share what you are building.
+</p>
 
-The AI returns only editorial JSON. Rendering uses a fixed Python/Pillow engine embedded in the Go binary and makes no additional AI call. The interface runs content and design directly, with no manual editing step.
+<p align="center">
+  Builder Tool is a guided way to publish an idea in the visual language of AWS Builder Center.<br>
+  You describe the point of the post, choose a size and a look, and receive finished pages you can open, share, and download.
+</p>
 
-## Architecture
+<p align="center">
+  The page follows the language of your browser. These pictures were taken in English at <a href="https://buildertool.app">buildertool.app</a>.<br>
+  Brazilian Portuguese is available the same way.
+</p>
 
-```text
-React -> POST /api/generate -> AI (content only) -> validated CampaignDraft
-                                                      |
-                              modular planner: 3 valid options
-                                                      | seeded selection
-                              fixed renderer -> validation -> PNG/PDF/preview
+<p align="center">
+  <img src="docs/images/01-home.png" alt="Builder Tool home page: Your ideas. Your posts. Your AWS." width="100%">
+</p>
 
-Any failure -> full retry (including AI), up to 5 attempts
-```
+<p align="center">
+  <img src="docs/images/10-result.png" alt="A finished set of posts, ready to open and download." width="100%">
+</p>
 
-- `internal/domain/content.go`: editorial contract, normalization, roles, and format limits.
-- `internal/prompt/builder.go`: short content prompt, with no code or coordinate catalog.
-- `internal/hf/content.go`: inference, strict JSON parsing, and simulated content.
-- `internal/render/python/engine.py`: algorithmic planning, typography, geometry, and export.
-- `internal/render/campaign.go`: renderer embedding and independent file verification.
-- `web/src/App.tsx`: brief and direct generation of final files.
+<p align="center">A finished set, ready to share.</p>
 
-The `POST /api/content` and `POST /api/render` endpoints remain available for integrations, while the interface uses `POST /api/generate` and completes everything in one step.
+## Who it is for
 
-## Rendering
+Builder Tool is for people who teach, write, and share what they are building on AWS. A student explaining a first pipeline. A community builder turning a talk into a carousel. A team that wants one idea to look finished on Instagram, LinkedIn, X, Facebook, or YouTube.
 
-Editorial roles include cover, list, flow, comparison, manifesto, diagram, donut chart, timeline, metrics, and closing, but they do not select templates. They classify content. The renderer uses a nine-column modular grid on the main 1080 px canvases, converts `title`, `body`, and each item into semantic blocks, measures text with the final font, and enumerates cell-based dimensions while accounting for padding and wrapping. A rectangle packer searches available positions, scores compositions by centrality, occupancy, breadth, and quadrant distribution, keeps the three best, and selects one deterministically from the seed.
+You do not assemble a layout. You answer a short brief, and the pages come back ready.
 
-Lists preserve internal rhythm: three items prefer one column; four prefer `2x2`; five may use one column or `2x2` with the last item below in the left column. Right- and left-stepped layouts are also allowed, always offset by exactly one cell per row. Items in each group share the same width and a common height of one or two cells. The complete group is indivisible so other elements cannot break its structure.
+## Five short steps
 
-The grid uses square cells: 120 px for 1080 and 1200 px formats, and 100 px at 1600x900. The main 1080 px canvases have nine columns. Remaining canvas space is reserved for the margin/footer; cells are not stretched to fill the height.
+<img src="docs/images/03-how-it-works.png" alt="Channels where a post can go, and the five steps of a guided brief." width="100%">
 
-`cta` pages use their own typographic scale. Icons are read directly from Pixelarticons SVGs, rasterized in memory by CairoSVG, and enlarged using their actual opaque area.
+1. **Describe the idea.** Topic, goal, who should care, and the context the post has to get right.
+2. **Pick a size.** A resolution recommended for a channel, how much to say, and how many pages.
+3. **Choose the look.** Color, light or dark pages, and the language of the post itself.
+4. **Add your name,** if you want it in the footer. It stays on this device for the next post.
+5. **Download the set.** Pages, a carousel overview, and a PDF when they are ready.
 
-Decorative accents may originate from up to four independent points and grow into connected branches, distributed only where free space exists. Solid branches have no cell dividers. In gradient branches, one composition covers the whole tree and each cell reveals its corresponding section without restarting the gradient. Generation is reproducible and never overlaps content.
+The same path works on a phone. The brief stays one step at a time.
 
-Headers, text planes, information rows, icon cells, CTAs, and footers begin and end on grid axes. Structural blocks never have fractional margins: adjacent panels share the same edge. The main icon is connected to the title in a `1x1` or `2x2` cell. Icons may use colored ink on neutral surfaces or neutral ink on colored surfaces. Every list row keeps its number and icon together with its own semantic intent; there are no loose decorative icons.
+<img src="docs/images/12-phone.png" alt="Builder Tool on a phone, with the same headline and a Start a post button." width="360">
 
-The library uses a curated catalog of roughly 200 relevant SVGs directly from `design_system/icon_sources/pixelarticons`. All shapes are discovered from that folder; ten compatibility names are aliases to SVGs in that folder. There are no icon PNGs or color variants: CairoSVG generates the alpha channel in memory and the renderer applies color during composition.
+## A brief, from the first line to the last page
 
-Color is selected at campaign level. In `mono` mode, every page uses one accent and its gradient to white. In `spectrum` mode, the five official accents are shuffled through lists and combined only with official multicolor gradients.
+The set below is a real run on the live site: a post about the path from a commit to a live application, in English, at 1080 × 1350, with four pages and no personal footer.
 
-Word limits are an editorial filter; a long sentence may still not fit because of actual measurements. The application never silently cuts or alters content. Content, CTA, icon, calculation, script, rendering, or artifact errors trigger a complete retry, including a new AI call, up to five attempts.
+### 1. What you are sharing
 
-A campaign with N pages produces exactly N PNGs, one PDF, and one preview. Each file is classified as `page`, `document`, or `preview`. Content/rendering failures return HTTP 422 and are never presented as success.
+Start with the point of the post. The topic, what someone should take from it, and who it is for. Context is the room where the facts live: what must be included, what must be left out, and the sequence the pages should follow.
 
-Each job keeps the reproducible script in `generated/<id>/` and the visual files, `campaign.json`, and `validation.json` in `output/`. The downloaded script contains the fixed renderer and editorial data encoded as JSON.
+<img src="docs/images/04-idea.png" alt="Idea step filled in: from a commit to production on AWS, with a long context." width="100%">
 
-## Run
+### 2. Where it belongs
 
-Requirements: Go 1.24+, Node.js 22+, npm, Python 3.11+, and IBM Plex Mono or DejaVu Sans Mono fonts. The executor enforces timeouts, resource limits, audit hooks, and bubblewrap when available.
+Each option is a resolution, with the channel it is recommended for written inside the card.
 
-```bash
-cp .env.example .env
-# Configure HF_TOKEN and TYPESAFE_API_KEY in .env
-make run
-```
+| Resolution | Recommended for |
+| --- | --- |
+| 1080 × 1350 | Instagram |
+| 1080 × 1080 | Instagram |
+| 1080 × 1920 | Instagram |
+| 1080 × 1350 | LinkedIn |
+| 1080 × 1350 | a LinkedIn PDF |
+| 1600 × 900 | X |
+| 1080 × 1500 | Facebook |
+| 1080 × 1080 | YouTube |
 
-`make run` creates `.venv` when needed, installs or updates Python dependencies when `requirements.txt` changes, runs `npm ci` when the lockfile changes, builds the frontend and backend, and starts the server with the correct Python. Later runs reuse installed dependencies.
+Then choose how much the post should say. **Essential** keeps one idea and very little text. **Balanced** leaves room for short examples. **Deep** carries more explanation without shrinking the type. A set can be anywhere from 1 to 10 pages. This one uses four, balanced.
 
-Open http://localhost:8080. For development, also run `npm run dev` in `web/`.
+<img src="docs/images/05-publish.png" alt="Publish step with resolution cards, Balanced selected, and 4 pages." width="100%">
 
-To test the complete flow without a token or API usage:
+### 3. The visual direction
 
-```bash
-make mock
-```
+Pick one theme color, or **Colorful**, which carries the Builder Center palette across the set. Pages can be dark, light, or both, alternating through the carousel.
 
-Mock mode returns demonstration content and uses the same production planner and renderer.
+The language of the post is its own choice: English, Português, Español, Français, or Deutsch. That is the language written on the pages. It is separate from the language of the site.
 
-## Configuration
+<img src="docs/images/06-look.png" alt="Look step with Colorful, English, and Both selected." width="100%">
 
-| Variable | Default | Purpose |
-|---|---|---|
-| APP_ADDR | :8080 | HTTP address |
-| HF_TOKEN | empty | Server-only token |
-| HF_BASE_URL | https://router.huggingface.co/v1 | Compatible inference endpoint |
-| HF_MODEL | openai/gpt-oss-120b:fastest | Model/provider |
-| HF_MAX_TOKENS | 12000 | Editorial response limit |
-| HF_TIMEOUT_SECONDS | 180 | Inference timeout |
-| DESIGN_SYSTEM_DIR | design_system | Local assets |
-| WEB_DIST | web/dist | Compiled interface |
-| MOCK_HF | false | Local demonstration content |
-| TYPESAFE_API_KEY | empty | TypeSafe key for semantic icon selection with Jev |
-| TYPESAFE_BASE_URL | https://api.typesafe.ai/v1/systemone | TypeSafe System One endpoint |
-| TYPESAFE_MODEL | jev-latest | Model used to select icons |
-| ICON_SELECTOR | jev | Icon selector: `jev` or `hf` |
-| GENERATED_OUTPUT_DIR | generated | Jobs and results |
-| PYTHON_BIN | python3 | Renderer Python |
-| RENDER_TIMEOUT_SECONDS | 90 | Renderer timeout |
+### 4. About you, when you want it
 
-## Verification
+Your name, a subtitle, and a photo can sit in the footer. The photo is cropped to a square before it appears. Whatever you enter stays on this device and comes back filled in the next time you start a post.
 
-```bash
-make test
-make build
-```
+This example leaves the footer off. The pages stand on the idea alone.
 
-The suite checks the direct content -> planning -> rendering flow, invalid JSON, normalization, page counts, three candidates, modular alignment, icon presence, dimensions, incomplete PDFs, squares, collisions, glyphs, overflow, and seed reproduction. The matrix covers all eight formats and editorial roles.
+<img src="docs/images/07-about.png" alt="About you step with the footer switched off." width="100%">
 
-To run the renderer directly with a saved campaign:
+### 5. Review, then create
 
-```bash
-AWS_DESIGN_SYSTEM_DIR=design_system python3 internal/render/python/engine.py campaign.json output
-```
+The last step is a call to action, if you want one, and a review of the whole brief. Each line can be edited before the pages are made. In this run the call to action is “Save this path for your next deploy.”
 
-The real integration depends on the provider returning the requested JSON. Truncated responses, code, extra fields, or content over budget are rejected for that attempt and trigger a new inference. After five failures, the API returns HTTP 422 with a summary of each attempt.
+<img src="docs/images/08-review.png" alt="Review before creating, with the footer hidden and four pages ready." width="100%">
+
+## The pages, when they are ready
+
+Creating the set takes a moment. The pages appear in place as soon as they are finished.
+
+<img src="docs/images/09-creating.png" alt="Creating state: Composing your pages." width="100%">
+
+Four pages came back for this brief. Open any of them at full size, or take the whole set with you: a carousel overview, a PDF, and each page on its own. The page also shows what that set cost.
+
+<img src="docs/images/10-result.png" alt="Finished set of four posts about the path from a commit to production, ready to download." width="100%">
+
+The first page of the set, open:
+
+<img src="docs/images/11-page.png" alt="First generated page open in the viewer: From a commit to production on AWS." width="100%">
+
+From there you can edit the brief and create the set again, or start another post.
+
+## Start a post
+
+Open [buildertool.app](https://buildertool.app) and choose **Start a post**.
+
+Five short steps. The finished pages are yours to share.
+
+## License
+
+Builder Tool is released under the [MIT License](LICENSE).
