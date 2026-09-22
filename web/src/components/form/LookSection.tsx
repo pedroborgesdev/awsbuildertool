@@ -1,4 +1,5 @@
 import { colorThemes, languages, pageThemes } from '../../constants'
+import { useI18n } from '../../i18n/context'
 import { AppearanceOption } from '../ui/AppearanceOption'
 import { ChoiceCard } from '../ui/ChoiceCard'
 import { ThemeOption } from '../ui/ThemeOption'
@@ -10,26 +11,28 @@ interface LookSectionProps {
 }
 
 export function LookSection({ form, onUpdate }: LookSectionProps) {
+  const { t } = useI18n()
+
   return (
     <div className="step-fields">
       <fieldset>
-        <legend className="field-label mb-3">Theme color</legend>
-        <div className="theme-picker" role="radiogroup" aria-label="Theme color">
+        <legend className="field-label mb-3">{t.look.color}</legend>
+        <div className="theme-picker" role="radiogroup" aria-label={t.look.colorLabel}>
           {colorThemes.map((theme) => (
             <ThemeOption
-              key={theme.value}
-              value={theme.value}
-              label={theme.label}
-              selected={form.colorTheme === theme.value}
-              onSelect={() => onUpdate('colorTheme', theme.value)}
+              key={theme}
+              value={theme}
+              label={t.colors[theme]}
+              selected={form.colorTheme === theme}
+              onSelect={() => onUpdate('colorTheme', theme)}
             />
           ))}
         </div>
-        <p className="field-note">One color stays consistent. Colorful uses the Builder Center palette across the set.</p>
+        <p className="field-note">{t.look.colorNote}</p>
       </fieldset>
       <fieldset>
-        <legend className="field-label mb-3">Language</legend>
-        <div className="language-picker" role="radiogroup" aria-label="Post language">
+        <legend className="field-label mb-3">{t.look.language}</legend>
+        <div className="language-picker" role="radiogroup" aria-label={t.look.languageLabel}>
           {languages.map((language) => (
             <ChoiceCard key={language} selected={form.language === language} onSelect={() => onUpdate('language', language)}>
               <strong className="block text-sm">{language}</strong>
@@ -38,16 +41,16 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
         </div>
       </fieldset>
       <fieldset>
-        <legend className="field-label mb-3">Page appearance</legend>
-        <div className="appearance-picker" role="radiogroup" aria-label="Light or dark page appearance">
+        <legend className="field-label mb-3">{t.look.appearance}</legend>
+        <div className="appearance-picker" role="radiogroup" aria-label={t.look.appearanceLabel}>
           {pageThemes.map((theme) => (
             <AppearanceOption
-              key={theme.value}
-              value={theme.value}
-              label={theme.label}
-              description={theme.description}
-              selected={form.pageTheme === theme.value}
-              onSelect={() => onUpdate('pageTheme', theme.value)}
+              key={theme}
+              value={theme}
+              label={t.appearance[theme].label}
+              description={t.appearance[theme].description}
+              selected={form.pageTheme === theme}
+              onSelect={() => onUpdate('pageTheme', theme)}
             />
           ))}
         </div>

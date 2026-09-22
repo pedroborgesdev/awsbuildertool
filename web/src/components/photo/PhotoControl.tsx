@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/context'
 import { Button } from '../ui/Button'
 
 interface PhotoControlProps {
@@ -7,13 +8,15 @@ interface PhotoControlProps {
 }
 
 export function PhotoControl({ photo, onImport, onRemove }: PhotoControlProps) {
+  const { t } = useI18n()
+
   return (
     <div>
-      <p className="field-label mb-2">Your photo</p>
+      <p className="field-label mb-2">{t.about.photo}</p>
       <div className="about-photo-control">
-        {photo ? <img src={photo} alt="Photo cropped for the footer" /> : <span aria-hidden="true">Photo</span>}
+        {photo ? <img src={photo} alt={t.about.photoAlt} /> : <span aria-hidden="true">{t.about.photoEmpty}</span>}
         <label className="mini-button about-photo-import">
-          Import
+          {t.about.import}
           <input
             className="sr-only"
             type="file"
@@ -26,7 +29,7 @@ export function PhotoControl({ photo, onImport, onRemove }: PhotoControlProps) {
         </label>
         {photo && (
           <Button variant="mini" onClick={onRemove}>
-            Remove
+            {t.about.remove}
           </Button>
         )}
       </div>

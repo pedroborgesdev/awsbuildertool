@@ -1,4 +1,5 @@
 import { PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useI18n } from '../../i18n/context'
 import { Button } from '../ui/Button'
 
 const cropSize = 420
@@ -10,6 +11,7 @@ interface PhotoCropperProps {
 }
 
 export function PhotoCropper({ source, onCancel, onConfirm }: PhotoCropperProps) {
+  const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragRef = useRef<{ pointer: number; x: number; y: number; offsetX: number; offsetY: number } | null>(null)
   const [image, setImage] = useState<HTMLImageElement | null>(null)
@@ -108,14 +110,14 @@ export function PhotoCropper({ source, onCancel, onConfirm }: PhotoCropperProps)
   }
 
   return (
-    <div className="crop-overlay app-scrollbar" role="dialog" aria-modal="true" aria-label="Crop photo for the footer" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
+    <div className="crop-overlay app-scrollbar" role="dialog" aria-modal="true" aria-label={t.crop.label} onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
       <section className="crop-dialog" onMouseDown={(event) => event.stopPropagation()}>
         <header className="crop-header">
           <div>
-            <p className="eyebrow text-blue">About you</p>
-            <h2 className="mt-2 text-lg font-bold">Square crop</h2>
+            <p className="eyebrow text-blue">{t.crop.eyebrow}</p>
+            <h2 className="mt-2 text-lg font-bold">{t.crop.title}</h2>
           </div>
-          <Button variant="close" onClick={onCancel} aria-label="Cancel crop">×</Button>
+          <Button variant="close" onClick={onCancel} aria-label={t.crop.cancel}>×</Button>
         </header>
         <div className="crop-body">
           <div className="crop-canvas-shell">
@@ -131,14 +133,14 @@ export function PhotoCropper({ source, onCancel, onConfirm }: PhotoCropperProps)
             <span className="crop-frame" aria-hidden="true" />
           </div>
           <label className="crop-zoom">
-            <span className="field-label">Zoom</span>
+            <span className="field-label">{t.crop.zoom}</span>
             <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} />
           </label>
-          <p className="text-xs leading-5 text-muted-light">Drag the photo inside the square.</p>
+          <p className="text-xs leading-5 text-muted-light">{t.crop.hint}</p>
         </div>
         <footer className="crop-actions">
-          <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" disabled={!image} onClick={finishCrop}>Use this crop</Button>
+          <Button variant="secondary" onClick={onCancel}>{t.crop.dismiss}</Button>
+          <Button variant="primary" disabled={!image} onClick={finishCrop}>{t.crop.confirm}</Button>
         </footer>
       </section>
     </div>

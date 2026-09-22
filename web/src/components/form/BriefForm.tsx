@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { creatorSteps, stepIssue } from '../../constants'
+import { creatorStepIds, stepIssue } from '../../constants'
+import { useI18n } from '../../i18n/context'
 import { AboutSection } from './AboutSection'
 import { ActionSection } from './ActionSection'
 import { CentralIdeaSection } from './CentralIdeaSection'
@@ -24,9 +25,10 @@ interface BriefFormProps {
 }
 
 export function BriefForm({ form, config, step, busy, error, onUpdate, onImportPhoto, onStepChange, onExit, onSubmit }: BriefFormProps) {
+  const { t } = useI18n()
   const [attempted, setAttempted] = useState(false)
-  const issue = attempted ? stepIssue(step, form) : ''
-  const lastStep = creatorSteps.length - 1
+  const issueKey = attempted ? stepIssue(step, form) : ''
+  const lastStep = creatorStepIds.length - 1
   const generateDisabled = busy || !config?.designSystemReady || !config.rendererReady || (!config.mockMode && !config.tokenConfigured)
 
   function continueStep() {
@@ -69,17 +71,17 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
           </>
         )}
       </fieldset>
-      {issue && <p className="step-issue" role="alert">{issue}</p>}
+      {issueKey && <p className="step-issue" role="alert">{t.errors[issueKey]}</p>}
       {error && <ErrorAlert>{error}</ErrorAlert>}
       <div className="creator-nav">
         <Button variant="secondary" onClick={() => { setAttempted(false); step === 0 ? onExit() : onStepChange(step - 1) }} disabled={busy}>
-          {step === 0 ? 'Home' : 'Previous'}
+          {step === 0 ? t.nav.home : t.nav.previous}
         </Button>
         {step < lastStep ? (
-          <Button onClick={continueStep} disabled={busy}>Continue</Button>
+          <Button onClick={continueStep} disabled={busy}>{t.nav.continue}</Button>
         ) : (
           <Button type="submit" disabled={generateDisabled}>
-            {busy ? 'Creating posts…' : 'Create posts'} <span aria-hidden="true">↗</span>
+            {busy ? t.nav.creating : t.nav.create} <span aria-hidden="true">↗</span>
           </Button>
         )}
       </div>

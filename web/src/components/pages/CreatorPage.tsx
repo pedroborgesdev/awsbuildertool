@@ -1,5 +1,6 @@
 import { useEffect, type FormEvent } from 'react'
-import { canVisitStep, colorThemes, contentLevels, creatorSteps, formats, pageThemes } from '../../constants'
+import { canVisitStep, colorThemes, contentLevels, creatorStepIds, formats, pageThemes } from '../../constants'
+import { useI18n } from '../../i18n/context'
 import { BriefForm } from '../form/BriefForm'
 import type { AppConfig, GenerateRequest } from '../../types'
 
@@ -28,11 +29,13 @@ export function CreatorPage({
   onExit,
   onSubmit,
 }: CreatorPageProps) {
-  const current = creatorSteps[step]
+  const { t } = useI18n()
+  const stepId = creatorStepIds[step]
+  const current = t.steps[stepId]
   const format = formats.find((item) => item.value === form.platform) ?? formats[0]
-  const depth = contentLevels.find((item) => item.value === form.contentLevel)
-  const color = colorThemes.find((item) => item.value === form.colorTheme)
-  const appearance = pageThemes.find((item) => item.value === form.pageTheme)
+  const depth = contentLevels.find((item) => item === form.contentLevel)
+  const color = colorThemes.find((item) => item === form.colorTheme)
+  const appearance = pageThemes.find((item) => item === form.pageTheme)
 
   useEffect(() => {
     document.querySelector('.creator-scroll')?.scrollTo({ top: 0 })
@@ -42,13 +45,13 @@ export function CreatorPage({
   return (
     <div className="creator-scroll app-scrollbar">
       <div className="creator-layout">
-        <nav className="creator-progress" aria-label="Brief progress">
-          <p>Step {step + 1} of {creatorSteps.length}</p>
+        <nav className="creator-progress" aria-label={t.creator.progressLabel}>
+          <p>{t.creator.progress(step + 1, creatorStepIds.length)}</p>
           <ol className="creator-steps">
-            {creatorSteps.map((item, index) => {
+            {creatorStepIds.map((id, index) => {
               const open = canVisitStep(index, form)
               return (
-                <li key={item.label}>
+                <li key={id}>
                   <button
                     type="button"
                     className={index === step ? 'creator-step-current' : index < step ? 'creator-step-done' : ''}
@@ -57,7 +60,7 @@ export function CreatorPage({
                     onClick={() => onStepChange(index)}
                   >
                     <span>{String(index + 1).padStart(2, '0')}</span>
-                    {item.label}
+                    {t.steps[id].label}
                   </button>
                 </li>
               )
@@ -85,17 +88,17 @@ export function CreatorPage({
           />
         </section>
 
-        <aside className="creator-aside" aria-label="Brief summary">
+        <aside className="creator-aside" aria-label={t.creator.summaryLabel}>
           <article className="brief-preview">
             <p className="eyebrow text-green">{format.channel}</p>
-            <h2>{form.theme.trim() || 'Your next post'}</h2>
-            <p>{form.goal.trim() || 'The goal appears here as you write it.'}</p>
+            <h2>{form.theme.trim() || t.creator.previewTitle}</h2>
+            <p>{form.goal.trim() || t.creator.previewGoal}</p>
             <ul>
-              <li>{format.label}</li>
-              <li>{form.postCount} {form.postCount === 1 ? 'page' : 'pages'}</li>
-              <li>{depth?.label}</li>
-              <li>{color?.label}</li>
-              <li>{appearance?.label}</li>
+              <li>{format.dimensions}</li>
+              <li>{t.creator.pageCount(form.postCount)}</li>
+              <li>{depth ? t.levels[depth].label : ''}</li>
+              <li>{color ? t.colors[color] : ''}</li>
+              <li>{appearance ? t.appearance[appearance].label : ''}</li>
               <li>{form.language}</li>
             </ul>
           </article>

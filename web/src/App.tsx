@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { isAboutField, readAbout, writeAbout } from './aboutCache'
 import { generateScript, getConfig } from './api'
-import { creatorSteps, initialForm } from './constants'
+import { creatorStepIds, initialForm } from './constants'
+import { useI18n } from './i18n/context'
 import { AppShell, SiteHeader } from './components/layout/AppShell'
 import { CreatorPage } from './components/pages/CreatorPage'
 import { LandingPage } from './components/pages/LandingPage'
@@ -13,8 +14,21 @@ function canCreatePosts(config: AppConfig | null) {
   return Boolean(config?.designSystemReady && config.rendererReady && (config.tokenConfigured || config.mockMode))
 }
 
+function localizedDefaults(localeDefaults: { audience: string; tone: string; language: string }): Pick<GenerateRequest, 'audience' | 'tone' | 'language'> {
+  return {
+    audience: localeDefaults.audience,
+    tone: localeDefaults.tone,
+    language: localeDefaults.language,
+  }
+}
+
 function App() {
-  const [form, setForm] = useState<GenerateRequest>(() => ({ ...initialForm, ...readAbout() }))
+  const { t } = useI18n()
+  const [form, setForm] = useState<GenerateRequest>(() => ({
+    ...initialForm,
+    ...localizedDefaults(t.defaults),
+    ...readAbout(),
+  }))
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [view, setView] = useState<AppView>('landing')
   const [step, setStep] = useState(0)
@@ -46,12 +60,12 @@ function App() {
   function importPhoto(file?: File) {
     if (!file) return
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setError('Choose a JPEG, PNG, or WebP photo.')
+      setError(t.errors.photoType)
       return
     }
     const reader = new FileReader()
     reader.onload = () => setCropSource(String(reader.result))
-    reader.onerror = () => setError('The selected photo could not be opened.')
+    reader.onerror = () => setError(t.errors.photoOpen)
     reader.readAsDataURL(file)
   }
 
@@ -62,7 +76,7 @@ function App() {
   }
 
   function resetBrief() {
-    setForm({ ...initialForm, ...readAbout(), model: config?.model ?? '' })
+    setForm({ ...initialForm, ...localizedDefaults(t.defaults), ...readAbout(), model: config?.model ?? '' })
     setResult(null)
     setArtifactIsStale(false)
     setError('')
@@ -80,7 +94,7 @@ function App() {
       setResult(value)
       setArtifactIsStale(false)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The posts could not be created.')
+      setError(reason instanceof Error ? reason.message : t.errors.generate)
       setView('create')
     } finally {
       setBusy(false)
@@ -98,7 +112,7 @@ function App() {
         onHome={() => setView('landing')}
         onStart={openCreator}
         onResult={() => setView('result')}
-        onEdit={() => { setStep(creatorSteps.length - 1); setView('create') }}
+        onEdit={() => { setStep(creatorStepIds.length - 1); setView('create') }}
       />
       {view === 'landing' && <LandingPage config={config} canCreate={ready} error={error} onStart={openCreator} />}
       {view === 'create' && (
@@ -120,7 +134,7 @@ function App() {
           result={result}
           stale={artifactIsStale}
           loading={busy}
-          onEdit={() => { setStep(creatorSteps.length - 1); setView('create') }}
+          onEdit={() => { setStep(creatorStepIds.length - 1); setView('create') }}
           onReset={resetBrief}
         />
       )}

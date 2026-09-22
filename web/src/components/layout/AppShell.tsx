@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useI18n } from '../../i18n/context'
 import { Button } from '../ui/Button'
 import type { AppView } from '../../types'
 
@@ -28,27 +29,29 @@ export function SiteHeader({
   onResult: () => void
   onEdit: () => void
 }) {
+  const { t } = useI18n()
+
   return (
     <header className="site-header">
       <div className="site-header-inner">
         <button type="button" className="brand-lockup" onClick={onHome}>
           <img src="/logo.png" alt="" />
           <span className="brand-copy">
-            <span className="brand-title">Builder Tool</span>
-            <span className="brand-subtitle">For AWS Builder Center</span>
+            <span className="brand-title">{t.brand.title}</span>
+            <span className="brand-subtitle">{t.brand.subtitle}</span>
           </span>
         </button>
         <div className="header-actions">
           {view === 'landing' && (
             <Button className="header-cta" onClick={onStart} disabled={!canCreate}>
-              Start a post
+              {t.header.start}
             </Button>
           )}
           {view === 'create' && hasResult && (
-            <Button variant="secondary" onClick={onResult}>View posts</Button>
+            <Button variant="secondary" onClick={onResult}>{t.header.viewPosts}</Button>
           )}
           {view === 'result' && (
-            <Button variant="secondary" onClick={onEdit}>Edit brief</Button>
+            <Button variant="secondary" onClick={onEdit}>{t.header.edit}</Button>
           )}
         </div>
       </div>

@@ -1,7 +1,19 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        var tags = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en']
+        var lang = 'en'
+        for (var i = 0; i < tags.length; i++) {
+          var tag = String(tags[i] || '').toLowerCase().replace('_', '-')
+          if (tag === 'pt' || tag.indexOf('pt-') === 0) { lang = 'pt-BR'; break }
+          if (tag === 'en' || tag.indexOf('en-') === 0) { lang = 'en'; break }
+        }
+        document.documentElement.lang = lang
+      })()
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
