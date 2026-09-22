@@ -96,6 +96,7 @@ export function CreatorPage({
               <li>{depth?.label}</li>
               <li>{color?.label}</li>
               <li>{appearance?.label}</li>
+              <li>{form.language}</li>
             </ul>
           </article>
         </aside>

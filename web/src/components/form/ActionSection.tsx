@@ -10,14 +10,9 @@ interface ActionSectionProps {
 export function ActionSection({ form, onUpdate }: ActionSectionProps) {
   return (
     <div className="step-fields">
-      <div className="about-grid">
-        <Field label="Call to action" hint="optional">
-          <input maxLength={280} value={form.cta} onChange={(e) => onUpdate('cta', e.target.value)} placeholder="E.g.: Save this for your next build" />
-        </Field>
-        <Field label="Language">
-          <input value={form.language} onChange={(e) => onUpdate('language', e.target.value)} />
-        </Field>
-      </div>
+      <Field label="Call to action" hint="optional">
+        <input maxLength={280} value={form.cta} onChange={(e) => onUpdate('cta', e.target.value)} placeholder="E.g.: Save this for your next build" />
+      </Field>
       <details className="adjustments">
         <summary>Additional adjustments</summary>
         <div className="step-fields">

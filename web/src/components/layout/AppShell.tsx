@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { Button } from '../ui/Button'
-import { StatusBadge } from '../ui/StatusBadge'
-import type { AppConfig, AppView } from '../../types'
+import type { AppView } from '../../types'
 
 export function AppShell({ view, children }: { view: AppView; children: ReactNode }) {
   return (
@@ -14,7 +13,6 @@ export function AppShell({ view, children }: { view: AppView; children: ReactNod
 
 export function SiteHeader({
   view,
-  config,
   canCreate,
   hasResult,
   onHome,
@@ -23,7 +21,6 @@ export function SiteHeader({
   onEdit,
 }: {
   view: AppView
-  config: AppConfig | null
   canCreate: boolean
   hasResult: boolean
   onHome: () => void
@@ -53,7 +50,6 @@ export function SiteHeader({
           {view === 'result' && (
             <Button variant="secondary" onClick={onEdit}>Edit brief</Button>
           )}
-          <StatusBadge config={config} />
         </div>
       </div>
     </header>

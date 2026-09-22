@@ -5,7 +5,8 @@ const rows = [
   { step: 0, label: 'Idea' },
   { step: 1, label: 'Publish' },
   { step: 2, label: 'Look' },
-  { step: 3, label: 'Signature' },
+  { step: 3, label: 'About you' },
+  { step: 4, label: 'Finish' },
 ]
 
 export function ReviewStep({ form, onEdit }: { form: GenerateRequest; onEdit: (step: number) => void }) {
@@ -16,8 +17,9 @@ export function ReviewStep({ form, onEdit }: { form: GenerateRequest; onEdit: (s
   const summary = [
     form.theme.trim() || 'Topic not set',
     `${format.channel} · ${format.label} · ${form.postCount} pages · ${depth?.label}`,
-    `${color?.label} · ${appearance?.label}`,
-    form.useAboutFooter ? (form.aboutName.trim() || 'Footer on, name not set') : 'No footer signature',
+    `${color?.label} · ${appearance?.label} · ${form.language}`,
+    form.useAboutFooter ? (form.aboutName.trim() || 'Name not set yet') : 'Hidden from the footer',
+    form.cta.trim() || 'No call to action',
   ]
 
   return (

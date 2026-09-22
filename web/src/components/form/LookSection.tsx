@@ -1,5 +1,6 @@
-import { colorThemes, pageThemes } from '../../constants'
+import { colorThemes, languages, pageThemes } from '../../constants'
 import { AppearanceOption } from '../ui/AppearanceOption'
+import { ChoiceCard } from '../ui/ChoiceCard'
 import { ThemeOption } from '../ui/ThemeOption'
 import type { GenerateRequest } from '../../types'
 
@@ -25,6 +26,16 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
           ))}
         </div>
         <p className="field-note">One color stays consistent. Colorful uses the Builder Center palette across the set.</p>
+      </fieldset>
+      <fieldset>
+        <legend className="field-label mb-3">Language</legend>
+        <div className="language-picker" role="radiogroup" aria-label="Post language">
+          {languages.map((language) => (
+            <ChoiceCard key={language} selected={form.language === language} onSelect={() => onUpdate('language', language)}>
+              <strong className="block text-sm">{language}</strong>
+            </ChoiceCard>
+          ))}
+        </div>
       </fieldset>
       <fieldset>
         <legend className="field-label mb-3">Page appearance</legend>

@@ -6,8 +6,9 @@ import type { AppConfig } from '../../types'
 const journey = [
   { number: '01', title: 'Describe the idea', text: 'Topic, goal, and who should care.' },
   { number: '02', title: 'Pick a channel', text: 'Instagram, LinkedIn, X, Facebook, or YouTube.' },
-  { number: '03', title: 'Choose the look', text: 'Color, contrast, and how much to say.' },
-  { number: '04', title: 'Download the set', text: 'Pages, overview, and PDF when it is ready.' },
+  { number: '03', title: 'Choose the look', text: 'Color, contrast, and the language of the post.' },
+  { number: '04', title: 'Add your name', text: 'It stays on this device for the next post.' },
+  { number: '05', title: 'Download the set', text: 'Pages, overview, and PDF when it is ready.' },
 ]
 
 interface LandingPageProps {

@@ -35,6 +35,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 .app-shell {
   position: relative;
+  isolation: isolate;
   width: 100%;
   min-height: 100dvh;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
@@ -101,6 +102,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 .background-grid {
   position: fixed;
+  z-index: -1;
   inset: 0;
   opacity: .38;
   background-image: linear-gradient(to right, #34404d 1px, transparent 1px), linear-gradient(to bottom, #34404d 1px, transparent 1px);
@@ -317,7 +319,9 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
 .creator-scroll, .result-scroll { min-height: 0; overflow: auto; }
 .creator-layout { display: grid; gap: 28px; padding: 28px 20px 120px; }
 .creator-progress > p { color: #aab3bd; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.creator-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.creator-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.language-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.language-picker .format-card { min-height: 52px; }
 .creator-steps button { width: 100%; min-height: 48px; border: 1px solid #34404d; background: #161d26; color: #aab3bd; padding: 8px; font-size: 11px; font-weight: 800; }
 .creator-steps button span { display: block; color: #42b4ff; font-size: 10px; }
 .creator-steps button:focus-visible { outline: 2px solid #00e582; outline-offset: 2px; }
@@ -364,6 +368,7 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
   .gallery-loading, .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .about-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .theme-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .language-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .result-heading { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
   .result-actions { grid-auto-flow: column; justify-content: end; }
 }
@@ -375,7 +380,7 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
   .creator-steps button span { display: inline; }
   .creator-nav { justify-content: space-between; }
   .creator-nav .button-primary, .creator-nav .button-secondary { flex: 0 0 auto; min-width: 148px; }
-  .journey-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .journey-list { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .result-layout { grid-template-columns: minmax(0, 1fr) 280px; align-items: start; }
   .channel-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { stepIssue } from '../../constants'
+import { creatorSteps, stepIssue } from '../../constants'
 import { AboutSection } from './AboutSection'
 import { ActionSection } from './ActionSection'
 import { CentralIdeaSection } from './CentralIdeaSection'
@@ -26,6 +26,7 @@ interface BriefFormProps {
 export function BriefForm({ form, config, step, busy, error, onUpdate, onImportPhoto, onStepChange, onExit, onSubmit }: BriefFormProps) {
   const [attempted, setAttempted] = useState(false)
   const issue = attempted ? stepIssue(step, form) : ''
+  const lastStep = creatorSteps.length - 1
   const generateDisabled = busy || !config?.designSystemReady || !config.rendererReady || (!config.mockMode && !config.tokenConfigured)
 
   function continueStep() {
@@ -39,7 +40,7 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
   }
 
   function submit(event: FormEvent) {
-    if (step < 3) {
+    if (step < lastStep) {
       event.preventDefault()
       continueStep()
       return
@@ -60,9 +61,9 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
         {step === 0 && <CentralIdeaSection form={form} onUpdate={onUpdate} />}
         {step === 1 && <FormatSection form={form} onUpdate={onUpdate} />}
         {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
-        {step === 3 && (
+        {step === 3 && <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />}
+        {step === 4 && (
           <>
-            <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />
             <ActionSection form={form} onUpdate={onUpdate} />
             <ReviewStep form={form} onEdit={(next) => { setAttempted(false); onStepChange(next) }} />
           </>
@@ -74,7 +75,7 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
         <Button variant="secondary" onClick={() => { setAttempted(false); step === 0 ? onExit() : onStepChange(step - 1) }} disabled={busy}>
           {step === 0 ? 'Home' : 'Previous'}
         </Button>
-        {step < 3 ? (
+        {step < lastStep ? (
           <Button onClick={continueStep} disabled={busy}>Continue</Button>
         ) : (
           <Button type="submit" disabled={generateDisabled}>

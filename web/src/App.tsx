@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
+import { isAboutField, readAbout, writeAbout } from './aboutCache'
 import { generateScript, getConfig } from './api'
-import { initialForm } from './constants'
+import { creatorSteps, initialForm } from './constants'
 import { AppShell, SiteHeader } from './components/layout/AppShell'
 import { CreatorPage } from './components/pages/CreatorPage'
 import { LandingPage } from './components/pages/LandingPage'
@@ -13,7 +14,7 @@ function canCreatePosts(config: AppConfig | null) {
 }
 
 function App() {
-  const [form, setForm] = useState<GenerateRequest>(initialForm)
+  const [form, setForm] = useState<GenerateRequest>(() => ({ ...initialForm, ...readAbout() }))
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [view, setView] = useState<AppView>('landing')
   const [step, setStep] = useState(0)
@@ -33,7 +34,11 @@ function App() {
   }, [])
 
   function update<K extends keyof GenerateRequest>(key: K, value: GenerateRequest[K]) {
-    setForm((current) => ({ ...current, [key]: value }))
+    setForm((current) => {
+      const next = { ...current, [key]: value }
+      if (isAboutField(key)) writeAbout(next)
+      return next
+    })
     if (result) setArtifactIsStale(true)
     setError('')
   }
@@ -57,7 +62,7 @@ function App() {
   }
 
   function resetBrief() {
-    setForm({ ...initialForm, model: config?.model ?? '' })
+    setForm({ ...initialForm, ...readAbout(), model: config?.model ?? '' })
     setResult(null)
     setArtifactIsStale(false)
     setError('')
@@ -88,13 +93,12 @@ function App() {
     <AppShell view={view}>
       <SiteHeader
         view={view}
-        config={config}
         canCreate={ready}
         hasResult={Boolean(result)}
         onHome={() => setView('landing')}
         onStart={openCreator}
         onResult={() => setView('result')}
-        onEdit={() => { setStep(3); setView('create') }}
+        onEdit={() => { setStep(creatorSteps.length - 1); setView('create') }}
       />
       {view === 'landing' && <LandingPage config={config} canCreate={ready} error={error} onStart={openCreator} />}
       {view === 'create' && (
@@ -116,7 +120,7 @@ function App() {
           result={result}
           stale={artifactIsStale}
           loading={busy}
-          onEdit={() => { setStep(3); setView('create') }}
+          onEdit={() => { setStep(creatorSteps.length - 1); setView('create') }}
           onReset={resetBrief}
         />
       )}

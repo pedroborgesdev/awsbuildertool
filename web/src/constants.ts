@@ -26,6 +26,8 @@ export const colorThemes: Array<{ value: ColorTheme; label: string }> = [
   { value: 'colorful', label: 'Colorful' },
 ]
 
+export const languages = ['English', 'Português', 'Español', 'Français', 'Deutsch']
+
 export const pageThemes: Array<{ value: PageTheme; label: string; description: string }> = [
   { value: 'dark', label: 'Dark', description: 'All pages use a dark background.' },
   { value: 'light', label: 'Light', description: 'All pages use a light background.' },
@@ -46,12 +48,17 @@ export const creatorSteps = [
   {
     label: 'Look',
     title: 'Set the visual direction.',
-    description: 'Color and contrast keep the set consistent from the first page to the last.',
+    description: 'Choose the color, the page contrast, and the language of the post.',
+  },
+  {
+    label: 'About',
+    title: 'About you',
+    description: 'Your name, subtitle, and photo stay on this device and fill in next time.',
   },
   {
     label: 'Finish',
-    title: 'Sign it and review.',
-    description: 'Add your name, a call to action, and anything the post must get right.',
+    title: 'Review and create.',
+    description: 'Add a call to action, then check the brief before the pages are made.',
   },
 ] as const
 
