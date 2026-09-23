@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"strconv"
-	"time"
 )
 
 type Config struct {
@@ -17,13 +16,11 @@ type Config struct {
 	TypeSafeBaseURL string
 	TypeSafeModel   string
 	IconSelector    string
-	RequestTimeout  time.Duration
 	DesignSystemDir string
 	WebDist         string
 	MockHF          bool
 	GeneratedDir    string
 	PythonBin       string
-	RenderTimeout   time.Duration
 	HFInputCost     float64
 	HFOutputCost    float64
 	JevInputCost    float64
@@ -46,13 +43,11 @@ func Load() Config {
 		TypeSafeBaseURL: env("TYPESAFE_BASE_URL", "https://api.typesafe.ai/v1/systemone"),
 		TypeSafeModel:   env("TYPESAFE_MODEL", "jev-latest"),
 		IconSelector:    env("ICON_SELECTOR", "jev"),
-		RequestTimeout:  time.Duration(envInt("HF_TIMEOUT_SECONDS", 180)) * time.Second,
 		DesignSystemDir: env("DESIGN_SYSTEM_DIR", "design_system"),
 		WebDist:         env("WEB_DIST", "web/dist"),
 		MockHF:          envBool("MOCK_HF", false),
 		GeneratedDir:    env("GENERATED_OUTPUT_DIR", "generated"),
 		PythonBin:       env("PYTHON_BIN", "python3"),
-		RenderTimeout:   time.Duration(envInt("RENDER_TIMEOUT_SECONDS", 90)) * time.Second,
 	}
 }
 

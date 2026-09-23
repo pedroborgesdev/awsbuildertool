@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/pedroborges/universal-post-creator/internal/domain"
 	"github.com/pedroborges/universal-post-creator/internal/hf"
@@ -23,7 +22,7 @@ func TestTrustedCampaignAndArtifactValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
-	runner := NewRunner(root, "../../design_system", "python3", 20*time.Second)
+	runner := NewRunner(root, "../../design_system", "python3")
 	result, err := runner.Render(context.Background(), script)
 	if err != nil {
 		t.Fatalf("%v: %s", err, result.Log)

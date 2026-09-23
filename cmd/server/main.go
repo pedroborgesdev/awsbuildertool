@@ -28,12 +28,8 @@ func main() {
 	app := httpapi.New(cfg, logger)
 
 	server := &http.Server{
-		Addr:              cfg.Addr,
-		Handler:           app.Handler(),
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      cfg.RequestTimeout + cfg.RenderTimeout + 15*time.Second,
-		IdleTimeout:       60 * time.Second,
+		Addr:    cfg.Addr,
+		Handler: app.Handler(),
 	}
 
 	go func() {

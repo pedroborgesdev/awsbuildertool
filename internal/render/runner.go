@@ -49,12 +49,11 @@ type Runner struct {
 	generatedDir string
 	designDir    string
 	pythonBin    string
-	timeout      time.Duration
 	bwrapPath    string
 	pythonPath   string
 }
 
-func NewRunner(generatedDir, designDir, pythonBin string, timeout time.Duration) *Runner {
+func NewRunner(generatedDir, designDir, pythonBin string) *Runner {
 	bwrapPath, _ := exec.LookPath("bwrap")
 	pythonPath, _ := exec.LookPath(pythonBin)
 	if bwrapPath != "" && !bubblewrapWorks(bwrapPath) {
@@ -64,7 +63,6 @@ func NewRunner(generatedDir, designDir, pythonBin string, timeout time.Duration)
 		generatedDir: generatedDir,
 		designDir:    designDir,
 		pythonBin:    pythonBin,
-		timeout:      timeout,
 		bwrapPath:    bwrapPath,
 		pythonPath:   pythonPath,
 	}
@@ -112,9 +110,7 @@ func (r *Runner) Render(parent context.Context, script string) (Result, error) {
 		return Result{JobID: jobID}, fmt.Errorf("could not prepare protected executor: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(parent, r.timeout)
-	defer cancel()
-	command, err := r.command(ctx, jobDir, scriptPath, guardPath)
+	command, err := r.command(parent, jobDir, scriptPath, guardPath)
 	if err != nil {
 		return Result{JobID: jobID}, err
 	}
@@ -127,9 +123,6 @@ func (r *Runner) Render(parent context.Context, script string) (Result, error) {
 	result.Files, err = collectFiles(jobDir)
 	if err != nil {
 		return result, err
-	}
-	if ctx.Err() == context.DeadlineExceeded {
-		return result, fmt.Errorf("rendering exceeded the %s limit", r.timeout)
 	}
 	if runErr != nil {
 		return result, fmt.Errorf("script exited with an error: %w", runErr)
@@ -154,7 +147,7 @@ func (r *Runner) command(ctx context.Context, jobDir, scriptPath, guardPath stri
 	}
 
 	if r.bwrapPath == "" {
-		commandName, commandArgs := limitedPythonCommand(pythonPath, r.timeout, guardPath, scriptPath)
+		commandName, commandArgs := limitedPythonCommand(pythonPath, guardPath, scriptPath)
 		command := exec.CommandContext(ctx, commandName, commandArgs...)
 		command.Dir = jobDir
 		command.Env = []string{
@@ -187,21 +180,19 @@ func (r *Runner) command(ctx context.Context, jobDir, scriptPath, guardPath stri
 			args = append(args, "--ro-bind", path, path)
 		}
 	}
-	pythonCommand, pythonArgs := limitedPythonCommand(pythonPath, r.timeout, "/work/"+filepath.Base(guardPath), "/work/"+filepath.Base(scriptPath))
+	pythonCommand, pythonArgs := limitedPythonCommand(pythonPath, "/work/"+filepath.Base(guardPath), "/work/"+filepath.Base(scriptPath))
 	args = append(args, pythonCommand)
 	args = append(args, pythonArgs...)
 	return exec.CommandContext(ctx, r.bwrapPath, args...), nil
 }
 
-func limitedPythonCommand(pythonPath string, timeout time.Duration, guardPath, scriptPath string) (string, []string) {
+func limitedPythonCommand(pythonPath, guardPath, scriptPath string) (string, []string) {
 	prlimitPath, err := exec.LookPath("prlimit")
 	if err != nil {
 		return pythonPath, []string{"-I", guardPath, scriptPath}
 	}
-	cpuSeconds := max(1, int(timeout.Seconds())+2)
 	return prlimitPath, []string{
 		"--as=1073741824",
-		fmt.Sprintf("--cpu=%d", cpuSeconds),
 		fmt.Sprintf("--fsize=%d", maxOutputBytes+(10<<20)),
 		"--nproc=64",
 		"--", pythonPath, "-I", guardPath, scriptPath,

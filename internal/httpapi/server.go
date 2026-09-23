@@ -49,9 +49,9 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 	server := &Server{
 		config: cfg,
 		prompt: prompt.NewBuilder(cfg.DesignSystemDir),
-		hf:     hf.NewClient(cfg.HFToken, cfg.HFBaseURL, cfg.HFMaxTokens, cfg.RequestTimeout, cfg.MockHF),
-		jev:    jev.NewClient(cfg.TypeSafeAPIKey, cfg.TypeSafeBaseURL, cfg.TypeSafeModel, cfg.RequestTimeout),
-		render: render.NewRunner(cfg.GeneratedDir, cfg.DesignSystemDir, cfg.PythonBin, cfg.RenderTimeout),
+		hf:     hf.NewClient(cfg.HFToken, cfg.HFBaseURL, cfg.HFMaxTokens, 0, cfg.MockHF),
+		jev:    jev.NewClient(cfg.TypeSafeAPIKey, cfg.TypeSafeBaseURL, cfg.TypeSafeModel, 0),
+		render: render.NewRunner(cfg.GeneratedDir, cfg.DesignSystemDir, cfg.PythonBin),
 		logger: logger,
 	}
 	server.handler = server.routes()

@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestCollectFilesFindsSupportedOutputs(t *testing.T) {
@@ -54,7 +53,7 @@ func TestRunnerExecutesPillowScript(t *testing.T) {
 	}
 	generated := t.TempDir()
 	design := t.TempDir()
-	runner := NewRunner(generated, design, "python3", 10*time.Second)
+	runner := NewRunner(generated, design, "python3")
 	result, err := runner.Render(context.Background(), `from pathlib import Path
 from PIL import Image, ImageFont
 output = Path(__file__).resolve().parent / "output"
@@ -77,7 +76,7 @@ func TestRunnerBlocksNetworkModules(t *testing.T) {
 	if _, err := exec.LookPath("python3"); err != nil {
 		t.Skip("python3 unavailable")
 	}
-	runner := NewRunner(t.TempDir(), t.TempDir(), "python3", 10*time.Second)
+	runner := NewRunner(t.TempDir(), t.TempDir(), "python3")
 	result, err := runner.Render(context.Background(), "import socket\nprint(socket.gethostname())\n")
 	if err == nil {
 		t.Fatal("expected network module to be blocked")

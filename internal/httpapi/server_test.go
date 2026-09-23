@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/pedroborges/universal-post-creator/internal/config"
 	"github.com/pedroborges/universal-post-creator/internal/domain"
@@ -81,8 +80,8 @@ func testDesignSystem(t *testing.T) string {
 func TestGenerateInMockMode(t *testing.T) {
 	cfg := config.Config{
 		HFModel: "mock/model", HFBaseURL: "http://example.invalid", HFMaxTokens: 1000,
-		RequestTimeout: time.Second, DesignSystemDir: "../../design_system",
-		GeneratedDir: t.TempDir(), PythonBin: "python3", RenderTimeout: 20 * time.Second,
+		DesignSystemDir: "../../design_system",
+		GeneratedDir:    t.TempDir(), PythonBin: "python3",
 		WebDist: filepath.Join(t.TempDir(), "missing"), MockHF: true,
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))

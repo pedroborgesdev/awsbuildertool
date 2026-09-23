@@ -10,14 +10,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/pedroborges/universal-post-creator/internal/config"
 	"github.com/pedroborges/universal-post-creator/internal/domain"
 )
 
 func TestContentReviewAndRenderEndpoints(t *testing.T) {
-	cfg := config.Config{HFModel: "mock", MockHF: true, PythonBin: "python3", DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), RenderTimeout: 20 * time.Second, WebDist: t.TempDir()}
+	cfg := config.Config{HFModel: "mock", MockHF: true, PythonBin: "python3", DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), WebDist: t.TempDir()}
 	server := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	body := []byte(`{"theme":"Kubernetes","goal":"Teach students","platform":"instagram-square","postCount":5,"lastPageCta":true,"additionalContext":"` + strings.Repeat("a", 400) + `"}`)
 	response := httptest.NewRecorder()
