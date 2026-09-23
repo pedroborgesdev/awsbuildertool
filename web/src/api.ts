@@ -16,6 +16,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body
 }
 
+export type SiteStats = { images: number; visitors: number }
+
+export function getStats(): Promise<SiteStats> {
+  return request<SiteStats>('/api/stats')
+}
+
 export function getConfig(): Promise<AppConfig> {
   return request<AppConfig>('/api/config')
 }

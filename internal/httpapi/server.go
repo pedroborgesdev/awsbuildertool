@@ -52,6 +52,7 @@ type Server struct {
 	handler      http.Handler
 	generations  map[string]generationRecord
 	generationMu sync.Mutex
+	site         *siteStats
 }
 
 func New(cfg config.Config, logger *logmate.Logger) *Server {
@@ -66,6 +67,7 @@ func New(cfg config.Config, logger *logmate.Logger) *Server {
 		render:      render.NewRunner(cfg.GeneratedDir, cfg.DesignSystemDir, cfg.PythonBin),
 		logger:      logger,
 		generations: map[string]generationRecord{},
+		site:        newSiteStats(cfg.GeneratedDir),
 	}
 	server.handler = server.routes()
 	return server
@@ -76,6 +78,7 @@ func (s *Server) Handler() http.Handler { return s.handler }
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.health)
+	mux.HandleFunc("GET /api/stats", s.stats)
 	mux.HandleFunc("GET /api/config", s.clientConfig)
 	mux.HandleFunc("POST /api/prompt", s.previewPrompt)
 	mux.HandleFunc("POST /api/generate", s.generate)
@@ -85,7 +88,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/jobs/{job}/files/{path...}", s.generatedFile)
 	mux.Handle("GET /design-assets/", http.StripPrefix("/design-assets/", http.FileServer(http.Dir(filepath.Join(s.config.DesignSystemDir, "assets")))))
 	mux.Handle("/", s.staticHandler())
-	return s.middleware(mux)
+	return s.trackVisitors(s.middleware(mux))
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
@@ -286,6 +289,7 @@ func (s *Server) completeGeneration(id string, request domain.GenerateRequest) {
 		return
 	}
 	s.saveGeneration(id, generationRecord{status: "done", result: &response})
+	s.site.scheduleRecount()
 }
 
 func (s *Server) generationStatus(w http.ResponseWriter, r *http.Request) {

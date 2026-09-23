@@ -300,6 +300,10 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
 .landing-top { display: grid; gap: 28px; }
 .home-notice { display: grid; gap: 8px; border: 1px solid #34404d; border-left: 4px solid #42b4ff; background: rgba(29, 38, 49, .92); padding: 16px 18px; }
 .home-notice p:last-child { max-width: 78ch; color: #d5dde4; font-size: 14px; line-height: 1.6; }
+.home-stats { display: flex; flex-wrap: wrap; gap: 12px; }
+.home-stats p { display: grid; gap: 4px; min-width: 160px; margin: 0; padding: 14px 16px; border: 1px solid #34404d; background: rgba(29, 38, 49, .92); }
+.home-stats strong { color: #fff; font-size: 28px; line-height: 1; letter-spacing: -0.03em; }
+.home-stats span { color: #9aa7b2; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .hero { display: grid; gap: 28px; align-items: stretch; }
 .hero-copy, .mosaic, .mosaic-card { min-width: 0; }
 .page-lede { max-width: 42rem; margin-top: 18px; color: #aab3bd; font-size: 16px; line-height: 1.7; }

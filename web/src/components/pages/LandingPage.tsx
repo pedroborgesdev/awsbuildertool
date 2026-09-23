@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { getStats, type SiteStats } from '../../api'
 import { formats } from '../../constants'
 import { useI18n } from '../../i18n/context'
 import { Button } from '../ui/Button'
@@ -12,8 +14,22 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ config, canCreate, error, onStart }: LandingPageProps) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
+  const [stats, setStats] = useState<SiteStats | null>(null)
   const channels = [...new Set(formats.map((format) => format.channel))]
+  const number = new Intl.NumberFormat(locale)
+
+  useEffect(() => {
+    let active = true
+    getStats()
+      .then((value) => {
+        if (active) setStats(value)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <main className="landing">
@@ -22,6 +38,18 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
           <p className="eyebrow text-blue">{t.landing.noticeEyebrow}</p>
           <p>{t.landing.notice}</p>
         </aside>
+        {stats && (
+          <section className="home-stats" aria-label={t.landing.statsLabel}>
+            <p>
+              <strong>{number.format(stats.images)}</strong>
+              <span>{t.landing.imagesCreated}</span>
+            </p>
+            <p>
+              <strong>{number.format(stats.visitors)}</strong>
+              <span>{t.landing.uniqueVisitors}</span>
+            </p>
+          </section>
+        )}
         <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow text-pink">{t.landing.eyebrow}</p>
