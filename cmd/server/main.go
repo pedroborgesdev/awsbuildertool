@@ -39,13 +39,9 @@ func main() {
 
 	go func() {
 		defer logger.RecoverPanic()
-		logger.Info("server started", logmate.LogOptions{Metadata: map[string]any{
-			"address": cfg.Addr,
-			"model":   cfg.HFModel,
-			"mock":    cfg.MockHF,
-		}})
+		logger.Info(fmt.Sprintf("server started address=%s model=%s mock=%t", cfg.Addr, cfg.HFModel, cfg.MockHF))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server stopped unexpectedly", logmate.LogOptions{Metadata: map[string]any{"error": err.Error()}})
+			logger.Error(fmt.Sprintf("server stopped unexpectedly error=%v", err))
 			os.Exit(1)
 		}
 	}()
@@ -57,6 +53,6 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Error("graceful shutdown failed", logmate.LogOptions{Metadata: map[string]any{"error": err.Error()}})
+		logger.Error(fmt.Sprintf("graceful shutdown failed error=%v", err))
 	}
 }
