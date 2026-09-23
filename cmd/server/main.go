@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -9,14 +10,15 @@ import (
 	"syscall"
 	"time"
 
+	logmate "github.com/loghill-oss/logmate-clients/logmate-client-go"
+
 	"github.com/pedroborges/universal-post-creator/internal/config"
 	"github.com/pedroborges/universal-post-creator/internal/httpapi"
 )
 
 func main() {
-	bootstrapLogger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	if err := config.LoadDotEnv(".env"); err != nil {
-		bootstrapLogger.Error("failed to load .env", "error", err)
+		fmt.Fprintf(os.Stderr, "failed to load .env: %v\n", err)
 		os.Exit(1)
 	}
 	cfg := config.Load()
@@ -24,7 +26,10 @@ func main() {
 	if cfg.Debug {
 		level = slog.LevelDebug
 	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+	logger := logmate.Instrument(logmate.Config{Level: level})
+	defer logger.Close()
+	defer logger.RecoverPanic()
+
 	app := httpapi.New(cfg, logger)
 
 	server := &http.Server{
@@ -33,9 +38,14 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("server started", "address", cfg.Addr, "model", cfg.HFModel, "mock", cfg.MockHF)
+		defer logger.RecoverPanic()
+		logger.Info("server started", logmate.LogOptions{Metadata: map[string]any{
+			"address": cfg.Addr,
+			"model":   cfg.HFModel,
+			"mock":    cfg.MockHF,
+		}})
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server stopped unexpectedly", "error", err)
+			logger.Error("server stopped unexpectedly", logmate.LogOptions{Metadata: map[string]any{"error": err.Error()}})
 			os.Exit(1)
 		}
 	}()
@@ -47,6 +57,6 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Error("graceful shutdown failed", "error", err)
+		logger.Error("graceful shutdown failed", logmate.LogOptions{Metadata: map[string]any{"error": err.Error()}})
 	}
 }

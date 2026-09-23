@@ -4,18 +4,21 @@ import (
 	"context"
 	cryptorand "crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
+
+	logmate "github.com/loghill-oss/logmate-clients/logmate-client-go"
 
 	"github.com/pedroborges/universal-post-creator/internal/config"
 	"github.com/pedroborges/universal-post-creator/internal/domain"
@@ -32,27 +35,39 @@ type contentGenerator interface {
 	GenerateContent(context.Context, domain.GenerateRequest, string) (domain.CampaignDraft, error)
 }
 
-type Server struct {
-	config  config.Config
-	prompt  *prompt.Builder
-	hf      contentGenerator
-	jev     *jev.Client
-	render  render.Renderer
-	logger  *slog.Logger
-	handler http.Handler
+type generationRecord struct {
+	status string
+	result *domain.GenerateResponse
+	err    string
+	at     time.Time
 }
 
-func New(cfg config.Config, logger *slog.Logger) *Server {
+type Server struct {
+	config       config.Config
+	prompt       *prompt.Builder
+	hf           contentGenerator
+	jev          *jev.Client
+	render       render.Renderer
+	logger       *logmate.Logger
+	handler      http.Handler
+	generations  map[string]generationRecord
+	generationMu sync.Mutex
+}
+
+func New(cfg config.Config, logger *logmate.Logger) *Server {
 	if err := domain.LoadIcons(cfg.DesignSystemDir); err != nil {
-		logger.Error("failed to load icon catalog", "error", err, "design_system", cfg.DesignSystemDir)
+		logger.Error("failed to load icon catalog", logmate.LogOptions{Metadata: map[string]any{
+			"error": err.Error(), "design_system": cfg.DesignSystemDir,
+		}})
 	}
 	server := &Server{
-		config: cfg,
-		prompt: prompt.NewBuilder(cfg.DesignSystemDir),
-		hf:     hf.NewClient(cfg.HFToken, cfg.HFBaseURL, cfg.HFMaxTokens, 0, cfg.MockHF),
-		jev:    jev.NewClient(cfg.TypeSafeAPIKey, cfg.TypeSafeBaseURL, cfg.TypeSafeModel, 0),
-		render: render.NewRunner(cfg.GeneratedDir, cfg.DesignSystemDir, cfg.PythonBin),
-		logger: logger,
+		config:      cfg,
+		prompt:      prompt.NewBuilder(cfg.DesignSystemDir),
+		hf:          hf.NewClient(cfg.HFToken, cfg.HFBaseURL, cfg.HFMaxTokens, 0, cfg.MockHF),
+		jev:         jev.NewClient(cfg.TypeSafeAPIKey, cfg.TypeSafeBaseURL, cfg.TypeSafeModel, 0),
+		render:      render.NewRunner(cfg.GeneratedDir, cfg.DesignSystemDir, cfg.PythonBin),
+		logger:      logger,
+		generations: map[string]generationRecord{},
 	}
 	server.handler = server.routes()
 	return server
@@ -66,6 +81,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/config", s.clientConfig)
 	mux.HandleFunc("POST /api/prompt", s.previewPrompt)
 	mux.HandleFunc("POST /api/generate", s.generate)
+	mux.HandleFunc("GET /api/generations/{id}", s.generationStatus)
 	mux.HandleFunc("POST /api/content", s.generateContent)
 	mux.HandleFunc("POST /api/render", s.renderContent)
 	mux.HandleFunc("GET /api/jobs/{job}/files/{path...}", s.generatedFile)
@@ -117,8 +133,14 @@ func (s *Server) generateContent(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) createDraft(ctx context.Context, request domain.GenerateRequest, retryFeedback string) (domain.CampaignDraft, string, error) {
 	started := time.Now()
-	s.logger.Debug("stage started", "stage", "draft", "post_count", request.PostCount, "retry", retryFeedback != "")
-	defer func() { s.logger.Debug("stage finished", "stage", "draft", "duration", time.Since(started)) }()
+	s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "draft", "post_count": request.PostCount, "retry": retryFeedback != "",
+	}})
+	defer func() {
+		s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "draft", "duration": time.Since(started).String(),
+		}})
+	}()
 	if !s.hf.Configured() {
 		return domain.CampaignDraft{}, "", errors.New("configure HF_TOKEN or enable MOCK_HF=true")
 	}
@@ -129,7 +151,9 @@ func (s *Server) createDraft(ctx context.Context, request domain.GenerateRequest
 	if err != nil {
 		return domain.CampaignDraft{}, "", err
 	}
-	s.logger.Debug("stage finished", "stage", "prompt", "duration", time.Since(started), "bytes", len(built))
+	s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "prompt", "duration": time.Since(started).String(), "bytes": len(built),
+	}})
 	if retryFeedback != "" {
 		built += "\n\nMANDATORY CORRECTION FOR THIS NEW ATTEMPT:\nThe previous attempt failed because: " + retryFeedback +
 			"\nGenerate new editorial content, simplifying it when necessary, that avoids this failure and continues to fully obey the contract."
@@ -138,7 +162,9 @@ func (s *Server) createDraft(ctx context.Context, request domain.GenerateRequest
 	if err != nil {
 		return draft, built, fmt.Errorf("text generation: %w", err)
 	}
-	s.logger.Debug("stage finished", "stage", "text generation", "duration", time.Since(started), "pages", len(draft.Pages))
+	s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "text generation", "duration": time.Since(started).String(), "pages": len(draft.Pages),
+	}})
 	if !s.config.MockHF {
 		if err := s.selectIcons(ctx, &draft); err != nil {
 			return draft, built, fmt.Errorf("icon selection: %w", err)
@@ -153,8 +179,14 @@ func (s *Server) createDraft(ctx context.Context, request domain.GenerateRequest
 
 func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) error {
 	started := time.Now()
-	s.logger.Debug("stage started", "stage", "icon selection", "pages", len(draft.Pages))
-	defer func() { s.logger.Debug("stage finished", "stage", "icon selection", "duration", time.Since(started)) }()
+	s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "icon selection", "pages": len(draft.Pages),
+	}})
+	defer func() {
+		s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "icon selection", "duration": time.Since(started).String(),
+		}})
+	}()
 	iconNames := domain.IconNames()
 	const contextText = "Educational technology graphic. We need to choose the icon that most clearly and immediately represents this word in the state."
 	selections := make([]jev.Selection, 0, len(draft.Pages))
@@ -178,7 +210,9 @@ func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) e
 		for _, selection := range selections {
 			hfSelections = append(hfSelections, hf.IconSelection{ID: selection.ID, Word: selection.Word, Context: selection.Context})
 		}
-		s.logger.Debug("stage started", "stage", "HF icon selection", "selections", len(hfSelections))
+		s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "HF icon selection", "selections": len(hfSelections),
+		}})
 		icons, err := client.SelectIcons(ctx, draft.Brief.Model, hfSelections, iconNames)
 		if err != nil {
 			return err
@@ -194,8 +228,10 @@ func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) e
 		end := min(start+maxBatchSelections, len(selections))
 		batch := selections[start:end]
 		batchStarted := time.Now()
-		s.logger.Debug("stage started", "stage", "Jev batch", "batch", start/maxBatchSelections+1,
-			"selections", len(batch), "total", len(selections))
+		s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "Jev batch", "batch": start/maxBatchSelections + 1,
+			"selections": len(batch), "total": len(selections),
+		}})
 		batchIcons, err := s.jev.SelectIcons(ctx, batch, iconNames)
 		if err != nil {
 			return err
@@ -203,10 +239,14 @@ func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) e
 		for id, icon := range batchIcons {
 			icons[id] = icon
 		}
-		s.logger.Debug("stage finished", "stage", "Jev batch", "batch", start/maxBatchSelections+1,
-			"duration", time.Since(batchStarted), "selections", len(batch))
+		s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "Jev batch", "batch": start/maxBatchSelections + 1,
+			"duration": time.Since(batchStarted).String(), "selections": len(batch),
+		}})
 	}
-	s.logger.Debug("stage finished", "stage", "icon selection", "duration", time.Since(started), "selections", len(selections))
+	s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "icon selection", "duration": time.Since(started).String(), "selections": len(selections),
+	}})
 	return applySelectedIcons(draft, icons)
 }
 
@@ -252,6 +292,73 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
 		s.problem(w, http.StatusServiceUnavailable, errors.New(rendererStatus.Mode))
 		return
 	}
+	id, err := newGenerationID()
+	if err != nil {
+		s.problem(w, http.StatusInternalServerError, err)
+		return
+	}
+	s.saveGeneration(id, generationRecord{status: "running"})
+	go s.completeGeneration(id, request)
+	writeJSON(w, http.StatusAccepted, map[string]string{"id": id, "status": "running"})
+}
+
+func (s *Server) completeGeneration(id string, request domain.GenerateRequest) {
+	response, err := s.runGeneration(context.Background(), request)
+	if err != nil {
+		s.logger.Error("generation failed", logmate.LogOptions{Metadata: map[string]any{
+			"generation": id, "error": err.Error(),
+		}})
+		s.saveGeneration(id, generationRecord{status: "failed", err: err.Error()})
+		return
+	}
+	s.saveGeneration(id, generationRecord{status: "done", result: &response})
+}
+
+func (s *Server) generationStatus(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if !jobIDPattern.MatchString(id) {
+		http.NotFound(w, r)
+		return
+	}
+	s.generationMu.Lock()
+	record, ok := s.generations[id]
+	s.generationMu.Unlock()
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	payload := map[string]any{"id": id, "status": record.status}
+	if record.status == "done" && record.result != nil {
+		payload["result"] = record.result
+	}
+	if record.status == "failed" {
+		payload["error"] = record.err
+	}
+	writeJSON(w, http.StatusOK, payload)
+}
+
+func (s *Server) saveGeneration(id string, record generationRecord) {
+	s.generationMu.Lock()
+	defer s.generationMu.Unlock()
+	cutoff := time.Now().Add(-6 * time.Hour)
+	for key, existing := range s.generations {
+		if existing.at.Before(cutoff) {
+			delete(s.generations, key)
+		}
+	}
+	record.at = time.Now()
+	s.generations[id] = record
+}
+
+func newGenerationID() (string, error) {
+	var value [16]byte
+	if _, err := cryptorand.Read(value[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(value[:]), nil
+}
+
+func (s *Server) runGeneration(ctx context.Context, request domain.GenerateRequest) (domain.GenerateResponse, error) {
 	failures := make([]string, 0, maxGenerationAttempts)
 	retryFeedback := ""
 	var draft domain.CampaignDraft
@@ -263,15 +370,17 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
 	jevStartUsage := s.jev.Usage()
 	for attempt := 1; attempt <= maxGenerationAttempts; attempt++ {
 		attemptStarted := time.Now()
-		s.logger.Debug("stage started", "stage", "generation attempt", "attempt", attempt, "max_attempts", maxGenerationAttempts)
+		s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "generation attempt", "attempt": attempt, "max_attempts": maxGenerationAttempts,
+		}})
 		var err error
 		if len(draft.Pages) == 0 {
-			draft, built, err = s.createDraft(r.Context(), request, retryFeedback)
+			draft, built, err = s.createDraft(ctx, request, retryFeedback)
 		} else {
 			// Keep the editorial draft stable while trying a fresh visual composition.
 			// Icon selection may be repeated, but content generation is not.
 			if !s.config.MockHF {
-				err = s.selectIcons(r.Context(), &draft)
+				err = s.selectIcons(ctx, &draft)
 				if err != nil {
 					err = fmt.Errorf("icon selection: %w", err)
 				}
@@ -280,11 +389,15 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
 		}
 		var response domain.GenerateResponse
 		if err == nil {
-			s.logger.Debug("stage started", "stage", "render pipeline", "attempt", attempt)
-			response, err = s.buildAndRender(r.Context(), draft, built)
+			s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+				"stage": "render pipeline", "attempt": attempt,
+			}})
+			response, err = s.buildAndRender(ctx, draft, built)
 		}
 		if err == nil {
-			s.logger.Debug("stage finished", "stage", "generation attempt", "attempt", attempt, "duration", time.Since(attemptStarted))
+			s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+				"stage": "generation attempt", "attempt": attempt, "duration": time.Since(attemptStarted).String(),
+			}})
 			if reporter, ok := s.hf.(interface{ Usage() hf.Usage }); ok {
 				usage := reporter.Usage()
 				response.Cost.HFPromptTokens = usage.PromptTokens - hfStartUsage.PromptTokens
@@ -309,26 +422,30 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
 					(!s.config.MockHF && response.Cost.JevPromptTokens == 0 && response.Cost.JevCompletionTokens == 0) ||
 					(response.Cost.HFPromptTokens > 0 && (s.config.HFInputCost == 0 || s.config.HFOutputCost == 0)) ||
 					(response.Cost.JevPromptTokens > 0 && (s.config.JevInputCost == 0 || s.config.JevOutputCost == 0))
-			writeJSON(w, http.StatusOK, response)
-			return
+			return response, nil
 		}
 		failure := compactGenerationError(err)
-		s.logger.Debug("stage failed", "stage", "generation attempt", "attempt", attempt, "duration", time.Since(attemptStarted), "error", failure)
+		s.logger.Debug("stage failed", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "generation attempt", "attempt": attempt, "duration": time.Since(attemptStarted).String(), "error": failure,
+		}})
 		if textOverflow(failure) {
-			s.logger.Debug("discarding draft", "reason", "text does not fit the format")
+			s.logger.Debug("discarding draft", logmate.LogOptions{Metadata: map[string]any{
+				"reason": "text does not fit the format",
+			}})
 			draft = domain.CampaignDraft{}
 			retryFeedback = textVolumeFeedback(failure)
 		} else if len(draft.Pages) == 0 {
 			retryFeedback = failure
 		}
 		failures = append(failures, fmt.Sprintf("tentativa %d: %s", attempt, failure))
-		s.logger.Warn("generation attempt failed", "attempt", attempt, "max_attempts", maxGenerationAttempts, "error", failure)
-		if r.Context().Err() != nil {
+		s.logger.Warn("generation attempt failed", logmate.LogOptions{Metadata: map[string]any{
+			"attempt": attempt, "max_attempts": maxGenerationAttempts, "error": failure,
+		}})
+		if ctx.Err() != nil {
 			break
 		}
 	}
-	s.problem(w, http.StatusUnprocessableEntity,
-		fmt.Errorf("generation failed after %d complete attempts: %s", len(failures), strings.Join(failures, " | ")))
+	return domain.GenerateResponse{}, fmt.Errorf("generation failed after %d complete attempts: %s", len(failures), strings.Join(failures, " | "))
 }
 func (s *Server) renderContent(w http.ResponseWriter, r *http.Request) {
 	var draft domain.CampaignDraft
@@ -358,8 +475,14 @@ func (s *Server) renderDraft(w http.ResponseWriter, r *http.Request, draft domai
 
 func (s *Server) buildAndRender(ctx context.Context, draft domain.CampaignDraft, built string) (domain.GenerateResponse, error) {
 	started := time.Now()
-	s.logger.Debug("stage started", "stage", "build and render", "pages", len(draft.Pages), "seed", draft.LayoutSeed)
-	defer func() { s.logger.Debug("stage finished", "stage", "build and render", "duration", time.Since(started)) }()
+	s.logger.Debug("stage started", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "build and render", "pages": len(draft.Pages), "seed": draft.LayoutSeed,
+	}})
+	defer func() {
+		s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+			"stage": "build and render", "duration": time.Since(started).String(),
+		}})
+	}()
 	draft.Normalize()
 	if draft.LayoutSeed == 0 {
 		draft.LayoutSeed = newLayoutSeed()
@@ -368,10 +491,14 @@ func (s *Server) buildAndRender(ctx context.Context, draft domain.CampaignDraft,
 	if err != nil {
 		return domain.GenerateResponse{}, err
 	}
-	s.logger.Debug("stage finished", "stage", "build script", "duration", time.Since(started), "bytes", len(script))
+	s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "build script", "duration": time.Since(started).String(), "bytes": len(script),
+	}})
 	rendered, err := s.render.Render(ctx, script)
 	if err != nil {
-		s.logger.Error("render failed", "job", rendered.JobID, "error", err)
+		s.logger.Error("render failed", logmate.LogOptions{Metadata: map[string]any{
+			"job": rendered.JobID, "error": err.Error(),
+		}})
 		detail := strings.TrimSpace(rendered.Log)
 		if lines := strings.Split(detail, "\n"); len(lines) > 0 {
 			detail = lines[len(lines)-1]
@@ -379,13 +506,17 @@ func (s *Server) buildAndRender(ctx context.Context, draft domain.CampaignDraft,
 		s.cleanupFailedJob(rendered.JobID)
 		return domain.GenerateResponse{}, fmt.Errorf("could not build the pages: %v. %s", err, detail)
 	}
-	s.logger.Debug("stage finished", "stage", "python render", "duration", time.Since(started), "job", rendered.JobID, "files", len(rendered.Files))
+	s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "python render", "duration": time.Since(started).String(), "job": rendered.JobID, "files": len(rendered.Files),
+	}})
 	assets, err := render.ValidateArtifacts(s.config.GeneratedDir, rendered, draft)
 	if err != nil {
 		s.cleanupFailedJob(rendered.JobID)
 		return domain.GenerateResponse{}, err
 	}
-	s.logger.Debug("stage finished", "stage", "artifact validation", "duration", time.Since(started), "assets", len(assets), "job", rendered.JobID)
+	s.logger.Debug("stage finished", logmate.LogOptions{Metadata: map[string]any{
+		"stage": "artifact validation", "duration": time.Since(started).String(), "assets": len(assets), "job": rendered.JobID,
+	}})
 	for i := range assets {
 		assets[i].URL = "/api/jobs/" + rendered.JobID + "/files/" + escapePath(assets[i].Name)
 	}
@@ -407,7 +538,9 @@ func (s *Server) cleanupFailedJob(jobID string) {
 		return
 	}
 	if err := os.RemoveAll(target); err != nil {
-		s.logger.Warn("failed to clean generation attempt", "job", jobID, "error", err)
+		s.logger.Warn("failed to clean generation attempt", logmate.LogOptions{Metadata: map[string]any{
+			"job": jobID, "error": err.Error(),
+		}})
 	}
 }
 
@@ -555,12 +688,16 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
-		s.logger.Info("request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(started))
+		s.logger.Info("request", logmate.LogOptions{Metadata: map[string]any{
+			"method": r.Method, "path": r.URL.Path, "duration": time.Since(started).String(),
+		}})
 	})
 }
 
 func (s *Server) problem(w http.ResponseWriter, status int, err error) {
-	s.logger.Error("request failed", "status", status, "error", err)
+	s.logger.Error("request failed", logmate.LogOptions{Metadata: map[string]any{
+		"status": status, "error": err.Error(),
+	}})
 	writeJSON(w, status, map[string]string{"error": err.Error()})
 }
 
