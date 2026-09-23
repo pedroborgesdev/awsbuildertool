@@ -427,6 +427,10 @@ input:focus, textarea:focus, select:focus { border-color: #00e582 !important; bo
   .crop-actions { flex-wrap: wrap; padding: 12px; }
   .crop-actions .button-primary,
   .crop-actions .button-secondary { flex: 1 1 140px; }
+  .home-stats { flex-wrap: nowrap; gap: 8px; }
+  .home-stats p { flex: 1 1 0; min-width: 0; gap: 2px; padding: 10px 12px; }
+  .home-stats strong { font-size: 20px; }
+  .home-stats span { font-size: 10px; line-height: 1.25; letter-spacing: 0.04em; }
   .page-lede { font-size: 13px; line-height: 1.55; }
   .generated-card > button { min-height: 140px; }
   .preview-logo { width: 120px; }
