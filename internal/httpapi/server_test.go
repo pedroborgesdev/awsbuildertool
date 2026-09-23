@@ -38,11 +38,18 @@ func (g *countingGenerator) GenerateContent(_ context.Context, request domain.Ge
 	return hf.MockDraft(request), nil
 }
 
-type countingFailRenderer struct{ calls int }
+type countingFailRenderer struct {
+	calls int
+	err   error
+}
 
 func (f *countingFailRenderer) Render(context.Context, string) (render.Result, error) {
 	f.calls++
-	return render.Result{JobID: fmt.Sprintf("%032x", f.calls)}, errors.New("forced layout calculation error")
+	err := f.err
+	if err == nil {
+		err = errors.New("forced layout calculation error")
+	}
+	return render.Result{JobID: fmt.Sprintf("%032x", f.calls)}, err
 }
 func (f *countingFailRenderer) Status() render.Status {
 	return render.Status{Ready: true, Mode: "teste"}
@@ -137,6 +144,27 @@ func TestGenerateRetriesRenderingWithoutRegeneratingContent(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "after 5 complete attempts") {
 		t.Fatalf("final error has no attempt history: %s", response.Body.String())
+	}
+}
+
+func TestGenerateRewritesTextWhenPagesDoNotFit(t *testing.T) {
+	cfg := config.Config{HFModel: "mock/model", DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), WebDist: t.TempDir(), MockHF: true}
+	server := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	generator := &countingGenerator{}
+	renderer := &countingFailRenderer{err: errors.New("Page 2: could not form three valid layouts (the measured blocks could not be packed)")}
+	server.hf = generator
+	server.render = renderer
+	body := []byte(`{"theme":"CI/CD","goal":"Teach students","platform":"instagram-square","postCount":3,"additionalContext":"` + strings.Repeat("a", 400) + `"}`)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/generate", bytes.NewReader(body)))
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if generator.calls != maxGenerationAttempts || renderer.calls != maxGenerationAttempts {
+		t.Fatalf("calls: IA=%d renderer=%d", generator.calls, renderer.calls)
+	}
+	if len(generator.prompts) < 2 || !strings.Contains(generator.prompts[1], "much less text") {
+		t.Fatal("the text-fit failure was not sent back to the AI")
 	}
 }
 

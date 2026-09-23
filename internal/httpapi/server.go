@@ -314,7 +314,11 @@ func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
 		}
 		failure := compactGenerationError(err)
 		s.logger.Debug("stage failed", "stage", "generation attempt", "attempt", attempt, "duration", time.Since(attemptStarted), "error", failure)
-		if len(draft.Pages) == 0 {
+		if textOverflow(failure) {
+			s.logger.Debug("discarding draft", "reason", "text does not fit the format")
+			draft = domain.CampaignDraft{}
+			retryFeedback = textVolumeFeedback(failure)
+		} else if len(draft.Pages) == 0 {
 			retryFeedback = failure
 		}
 		failures = append(failures, fmt.Sprintf("tentativa %d: %s", attempt, failure))
@@ -405,6 +409,18 @@ func (s *Server) cleanupFailedJob(jobID string) {
 	if err := os.RemoveAll(target); err != nil {
 		s.logger.Warn("failed to clean generation attempt", "job", jobID, "error", err)
 	}
+}
+
+func textOverflow(message string) bool {
+	lower := strings.ToLower(message)
+	return strings.Contains(lower, "could not be packed") ||
+		strings.Contains(lower, "does not fit the grid") ||
+		strings.Contains(lower, "text does not fit") ||
+		strings.Contains(lower, "shorten the content")
+}
+
+func textVolumeFeedback(failure string) string {
+	return failure + ". The text is too long for this format. Generate every page again with much less text: shorter titles, shorter body copy, and shorter item text. Keep the same idea and the same number of pages, but cut the volume until each page can be assembled."
 }
 
 func compactGenerationError(err error) string {
