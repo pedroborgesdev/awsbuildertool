@@ -14,6 +14,11 @@ func TestEditorialContract(t *testing.T) {
 	if err := valid().Validate(); err != nil {
 		t.Fatal(err)
 	}
+	long := valid()
+	long.Pages[0].Body = strings.Repeat("text ", 40)
+	if err := long.Validate(); err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct {
 		name   string
 		change func(*CampaignDraft)
@@ -21,7 +26,6 @@ func TestEditorialContract(t *testing.T) {
 		{"count", func(d *CampaignDraft) { d.Pages = nil }},
 		{"code-as-role", func(d *CampaignDraft) { d.Pages[0].Role = "exec" }},
 		{"missing-cta", func(d *CampaignDraft) { d.Pages[0].CTA = "" }},
-		{"budget", func(d *CampaignDraft) { d.Pages[0].Body = strings.Repeat("text ", 40) }},
 		{"invalid-icon", func(d *CampaignDraft) { d.Pages[0].IconIntent = "../../file" }},
 		{"comparison", func(d *CampaignDraft) { d.Pages[0].Role = "comparison" }},
 	} {

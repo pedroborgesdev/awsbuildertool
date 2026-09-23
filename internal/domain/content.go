@@ -47,20 +47,6 @@ func IconNames() []string {
 	return names
 }
 
-func WordBudget(brief GenerateRequest, role string) int {
-	limit := map[string]int{"essential": 50, "balanced": 80, "deep": 120}[brief.ContentLevel]
-	if role == "cover" || role == "manifesto" {
-		limit = min(limit, 45)
-	}
-	if role == "cta" {
-		limit = min(limit, 65)
-	}
-	if brief.Platform == "instagram-square" || brief.Platform == "youtube-community" || brief.Platform == "x-landscape" || brief.Platform == "linkedin-document" {
-		limit = min(limit, 90)
-	}
-	return limit
-}
-
 func NormalizeText(value string) string {
 	r := strings.NewReplacer("\u2011", "-", "\u2010", "-", "\u2013", "-", "\u2014", "-", "\u00a0", " ", "\u202f", " ", "\u2018", "'", "\u2019", "'", "\u201c", "\"", "\u201d", "\"", "\u2026", "...", "\r\n", "\n")
 	return strings.TrimSpace(strings.Map(func(c rune) rune {
@@ -203,7 +189,6 @@ func (d CampaignDraft) Validate() error {
 				return fmt.Errorf("page %d: chart slices must sum to 100", i+1)
 			}
 		}
-		words := strings.Fields(p.Eyebrow + " " + p.Title + " " + p.Body + " " + p.CTA)
 		for _, item := range p.Items {
 			if strings.TrimSpace(item.Title) == "" || len([]rune(item.Title)) > 60 || len([]rune(item.Text)) > 200 {
 				return fmt.Errorf("page %d: each item needs a title (up to 60 characters) and text up to 200 characters", i+1)
@@ -211,10 +196,6 @@ func (d CampaignDraft) Validate() error {
 			if !Icons[item.IconIntent] {
 				return fmt.Errorf("page %d: invalid item icon", i+1)
 			}
-			words = append(words, strings.Fields(item.Title+" "+item.Text)...)
-		}
-		if len(words) > WordBudget(d.Brief, p.Role) {
-			return fmt.Errorf("page %d: %d words; limit is %d for this format and role. Shorten the text or redistribute it across pages", i+1, len(words), WordBudget(d.Brief, p.Role))
 		}
 		if ((i == 0 && d.Brief.FirstPageCTA) || (i == len(d.Pages)-1 && d.Brief.LastPageCTA)) && p.CTA == "" {
 			return fmt.Errorf("page %d: CTA is required", i+1)

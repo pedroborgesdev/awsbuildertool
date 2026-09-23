@@ -64,7 +64,6 @@ Contract:
 - cover and manifesto: zero items; cta: up to three; comparison: two or three; list: one to nine; flow: one to five; diagram, chart, and timeline: two to five; stats: two to four.
 - Use chart only for comparable proportions. In that role, value is required between 1 and 100 for each item and must sum exactly to 100; the renderer decides algorithmically between a pie and columns. Use value 0 for other roles.
 - Title up to 100 characters, label up to 50, body up to 700, CTA up to 140; item title up to 60 and text up to 200. Use the available budget when the subject needs explanation; do not compress useful context into short fragments.
-- TOTAL word limit per page (including title, items, and CTA): cover/manifesto %d; list/flow/comparison %d; cta %d.
 - Use the requested CTA concisely and preserve its intent. Respect firstPageCta and lastPageCta.
 - useAboutFooter, aboutName, aboutSubtitle, aboutPhoto, colorTheme, and pageTheme are visual-only metadata. Do not repeat them in content or mention colors or appearance in the text.
 - Provisional icons allowed at this stage: %s. Jev performs final semantic selection using the full local icon catalog; repetitions are allowed when they represent the same concept.
@@ -74,5 +73,5 @@ Contract:
 - Do not include layout, fonts, colors, file paths, or code. Empty fields must be empty strings or empty arrays.
 
 BRIEFING:
-%s`, request.PostCount, domain.WordBudget(request, "cover"), domain.WordBudget(request, "list"), domain.WordBudget(request, "cta"), strings.Join(promptIconNames(request), ", "), brief), nil
+%s`, request.PostCount, strings.Join(promptIconNames(request), ", "), brief), nil
 }
