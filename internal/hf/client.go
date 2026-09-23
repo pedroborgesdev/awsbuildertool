@@ -48,45 +48,6 @@ type IconSelection struct {
 	Context string
 }
 
-func (c *Client) SelectIcons(ctx context.Context, model string, selections []IconSelection, iconNames []string) (map[string]string, error) {
-	if len(selections) == 0 {
-		return map[string]string{}, nil
-	}
-	choices, err := json.Marshal(iconNames)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize icon catalog: %w", err)
-	}
-	items, err := json.Marshal(selections)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize icon selections: %w", err)
-	}
-	prompt := fmt.Sprintf(`Select one icon name for each item. Return only one JSON object mapping every id to exactly one name from the catalog.
-Use the word and context to choose the closest semantic match. Never invent names and do not return explanations.
-CATALOG: %s
-ITEMS: %s`, choices, items)
-	value, err := c.complete(ctx, model, "You select icons for structured editorial content. Return strict JSON only.", prompt, 0, 1800)
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]string
-	decoder := json.NewDecoder(strings.NewReader(value))
-	if err := decoder.Decode(&result); err != nil {
-		return nil, fmt.Errorf("HF icon response is not valid JSON: %w", err)
-	}
-	valid := make(map[string]bool, len(iconNames))
-	for _, name := range iconNames {
-		valid[name] = true
-	}
-	for _, selection := range selections {
-		icon := strings.TrimSpace(result[selection.ID])
-		if !valid[icon] {
-			return nil, fmt.Errorf("HF returned invalid icon %q for %q", icon, selection.Word)
-		}
-		result[selection.ID] = icon
-	}
-	return result, nil
-}
-
 func (c *Client) complete(ctx context.Context, model, system, prompt string, temperature float64, maxTokens int) (string, error) {
 	if strings.TrimSpace(c.token) == "" {
 		return "", errors.New("HF_TOKEN is not configured")

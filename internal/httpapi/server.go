@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -177,16 +178,7 @@ func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) e
 		s.logger.Debug(fmt.Sprintf("stage finished stage=icon selection duration=%s", time.Since(started)))
 	}()
 	iconNames := domain.IconNames()
-	const contextText = "Educational technology graphic. We need to choose the icon that most clearly and immediately represents this word in the state."
-	selections := make([]jev.Selection, 0, len(draft.Pages))
-	for pageIndex := range draft.Pages {
-		page := &draft.Pages[pageIndex]
-		selections = append(selections, jev.Selection{ID: fmt.Sprintf("page-%d", pageIndex), Word: page.Title, Context: contextText})
-		for itemIndex := range page.Items {
-			item := &page.Items[itemIndex]
-			selections = append(selections, jev.Selection{ID: fmt.Sprintf("page-%d-item-%d", pageIndex, itemIndex), Word: item.Title, Context: contextText})
-		}
-	}
+	selections := iconSelections(draft)
 	if len(selections) == 0 {
 		return nil
 	}
@@ -204,6 +196,7 @@ func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) e
 		if err != nil {
 			return err
 		}
+		s.logger.Debug(fmt.Sprintf("icon selection mapped %s", summarizeIcons(icons)))
 		return applySelectedIcons(draft, icons)
 	}
 	// The TypeSafe response limit is reached with more than one selection because
@@ -225,15 +218,73 @@ func (s *Server) selectIcons(ctx context.Context, draft *domain.CampaignDraft) e
 		}
 		s.logger.Debug(fmt.Sprintf("stage finished stage=Jev batch batch=%d duration=%s selections=%d", start/maxBatchSelections+1, time.Since(batchStarted), len(batch)))
 	}
-	s.logger.Debug(fmt.Sprintf("stage finished stage=icon selection duration=%s selections=%d", time.Since(started), len(selections)))
+	s.logger.Debug(fmt.Sprintf("icon selection mapped %s", summarizeIcons(icons)))
 	return applySelectedIcons(draft, icons)
 }
 
-func (s *Server) iconSelector() string {
-	if strings.EqualFold(strings.TrimSpace(s.config.IconSelector), "hf") {
-		return "hf"
+func iconSelections(draft *domain.CampaignDraft) []jev.Selection {
+	selections := make([]jev.Selection, 0, len(draft.Pages))
+	for pageIndex := range draft.Pages {
+		page := &draft.Pages[pageIndex]
+		selections = append(selections, jev.Selection{
+			ID:      fmt.Sprintf("page-%d", pageIndex),
+			Word:    page.Title,
+			Context: clipText(joinText(page.Eyebrow, page.Body, page.CTA), 400),
+		})
+		for itemIndex := range page.Items {
+			item := &page.Items[itemIndex]
+			selections = append(selections, jev.Selection{
+				ID:      fmt.Sprintf("page-%d-item-%d", pageIndex, itemIndex),
+				Word:    item.Title,
+				Context: clipText(joinText(page.Title, item.Text), 400),
+			})
+		}
 	}
-	return "jev"
+	return selections
+}
+
+func joinText(parts ...string) string {
+	kept := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			kept = append(kept, part)
+		}
+	}
+	return strings.Join(kept, ". ")
+}
+
+func clipText(value string, limit int) string {
+	value = strings.Join(strings.Fields(value), " ")
+	runes := []rune(value)
+	if len(runes) <= limit {
+		return value
+	}
+	return string(runes[:limit])
+}
+
+func summarizeIcons(icons map[string]string) string {
+	ids := make([]string, 0, len(icons))
+	for id := range icons {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	parts := make([]string, 0, len(ids))
+	for _, id := range ids {
+		parts = append(parts, id+"="+icons[id])
+	}
+	value := strings.Join(parts, " ")
+	if len(value) > 500 {
+		return value[:500] + "…"
+	}
+	return value
+}
+
+func (s *Server) iconSelector() string {
+	if strings.EqualFold(strings.TrimSpace(s.config.IconSelector), "jev") {
+		return "jev"
+	}
+	return "hf"
 }
 
 func applySelectedIcons(draft *domain.CampaignDraft, icons map[string]string) error {

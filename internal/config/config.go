@@ -42,7 +42,7 @@ func Load() Config {
 		TypeSafeAPIKey:  os.Getenv("TYPESAFE_API_KEY"),
 		TypeSafeBaseURL: env("TYPESAFE_BASE_URL", "https://api.typesafe.ai/v1/systemone"),
 		TypeSafeModel:   env("TYPESAFE_MODEL", "jev-latest"),
-		IconSelector:    env("ICON_SELECTOR", "jev"),
+		IconSelector:    env("ICON_SELECTOR", "hf"),
 		DesignSystemDir: env("DESIGN_SYSTEM_DIR", "design_system"),
 		WebDist:         env("WEB_DIST", "web/dist"),
 		MockHF:          envBool("MOCK_HF", false),

@@ -66,7 +66,7 @@ Contract:
 - Title up to 100 characters, label up to 50, body up to 700, CTA up to 140; item title up to 60 and text up to 200. Use the available budget when the subject needs explanation; do not compress useful context into short fragments.
 - Use the requested CTA concisely and preserve its intent. Respect firstPageCta and lastPageCta.
 - useAboutFooter, aboutName, aboutSubtitle, aboutPhoto, colorTheme, and pageTheme are visual-only metadata. Do not repeat them in content or mention colors or appearance in the text.
-- Provisional icons allowed at this stage: %s. Jev performs final semantic selection using the full local icon catalog; repetitions are allowed when they represent the same concept.
+- Provisional icons allowed at this stage: %s. They are placeholders and are replaced afterward by the closest picture in the local catalog. Repetitions are allowed when they represent the same concept.
 - Explain acronyms at first use. Do not invent numbers, benefits, certifications, guarantees, or sources. When facts are missing, use general explanations without unverified claims.
 - Whenever referring to the platform, always write its complete name exactly as "AWS Builder Center". Never shorten it to "Builder Center".
 - Use complete words, accents, simple punctuation, and ASCII hyphens. Do not use emojis or decorative characters.
