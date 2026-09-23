@@ -132,4 +132,4 @@ Five short steps. The finished pages are yours to share.
 
 ## License
 
-Builder Tool is released under the [MIT License](LICENSE).
+Builder Tool is proprietary. All rights reserved. See [LICENSE](LICENSE).
