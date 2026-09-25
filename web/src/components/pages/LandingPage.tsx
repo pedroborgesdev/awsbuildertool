@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getStats, type SiteStats } from '../../api'
 import { formats } from '../../constants'
 import { useI18n } from '../../i18n/context'
-import { eyebrowClass } from '../../styles'
+import { eyebrowClass, skeletonClass } from '../../styles'
 import { CommunityCarousel } from '../community/CommunityCarousel'
 import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
@@ -10,14 +10,16 @@ import type { AppConfig } from '../../types'
 
 interface LandingPageProps {
   config: AppConfig | null
+  configLoading: boolean
   canCreate: boolean
   error: string
   onStart: () => void
 }
 
-export function LandingPage({ config, canCreate, error, onStart }: LandingPageProps) {
+export function LandingPage({ config, configLoading, canCreate, error, onStart }: LandingPageProps) {
   const { locale, t } = useI18n()
   const [stats, setStats] = useState<SiteStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
   const channels = [...new Set(formats.map((format) => format.channel))]
   const number = new Intl.NumberFormat(locale)
 
@@ -28,6 +30,9 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
         if (active) setStats(value)
       })
       .catch(() => {})
+      .finally(() => {
+        if (active) setStatsLoading(false)
+      })
     return () => {
       active = false
     }
@@ -35,6 +40,7 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
 
   const cardClass = 'border border-grid bg-panel/80 p-4'
   const mosaicCardClass = 'flex min-h-37 min-w-0 flex-col justify-between gap-4 overflow-hidden border border-grid bg-panel/90 p-[18px]'
+  const statCardClass = 'grid min-w-40 gap-1 border border-grid bg-panel/90 px-4 py-3.5 max-[520px]:min-w-0 max-[520px]:flex-1 max-[520px]:gap-0.5 max-[520px]:px-3 max-[520px]:py-2.5'
 
   return (
     <main className="grid w-full gap-18 bg-ink px-5 pt-7 pb-20 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
@@ -43,16 +49,29 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
           <p className={`${eyebrowClass} text-blue`}>{t.landing.noticeEyebrow}</p>
           <p className="max-w-[78ch] text-sm leading-relaxed text-[#d5dde4] max-[520px]:text-[11px] max-[520px]:leading-[1.45]">{t.landing.notice}</p>
         </aside>
-        {stats && (
+        {(stats || statsLoading) && (
           <section className="flex flex-wrap gap-3 max-[520px]:flex-nowrap max-[520px]:gap-2" aria-label={t.landing.statsLabel}>
-            <p className="grid min-w-40 gap-1 border border-grid bg-panel/90 px-4 py-3.5 max-[520px]:min-w-0 max-[520px]:flex-1 max-[520px]:gap-0.5 max-[520px]:px-3 max-[520px]:py-2.5">
-              <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.images)}</strong>
-              <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.imagesCreated}</span>
-            </p>
-            <p className="grid min-w-40 gap-1 border border-grid bg-panel/90 px-4 py-3.5 max-[520px]:min-w-0 max-[520px]:flex-1 max-[520px]:gap-0.5 max-[520px]:px-3 max-[520px]:py-2.5">
-              <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.visitors)}</strong>
-              <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.uniqueVisitors}</span>
-            </p>
+            {stats ? (
+              <>
+                <p className={statCardClass}>
+                  <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.images)}</strong>
+                  <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.imagesCreated}</span>
+                </p>
+                <p className={statCardClass}>
+                  <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.visitors)}</strong>
+                  <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.uniqueVisitors}</span>
+                </p>
+              </>
+            ) : (
+              <>
+                {[0, 1].map((item) => (
+                  <div className={statCardClass} aria-hidden="true" key={item}>
+                    <span className={`${skeletonClass} block h-7 w-20`} />
+                    <span className={`${skeletonClass} block h-3 w-28 max-w-full`} />
+                  </div>
+                ))}
+              </>
+            )}
           </section>
         )}
         <section className="grid items-stretch gap-7 min-[720px]:grid-cols-[minmax(0,1.05fr)_minmax(300px,.9fr)]">
@@ -61,9 +80,13 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
             <h1 className="max-w-[12ch] [overflow-wrap:anywhere] text-[clamp(2.2rem,4.6vw,4.2rem)] leading-[.94] font-extrabold tracking-[-.06em]">{t.landing.title}</h1>
             <p className="mt-[18px] max-w-2xl text-base leading-[1.7] text-muted-light max-[520px]:text-[13px] max-[520px]:leading-[1.55]">{t.landing.lede}</p>
             <div className="mt-7 grid gap-3">
-              <Button onClick={onStart} disabled={!canCreate}>
-                {t.landing.start} <span aria-hidden="true">↗</span>
-              </Button>
+              {configLoading ? (
+                <span className={`${skeletonClass} block min-h-12 w-full border border-grid`} aria-hidden="true" />
+              ) : (
+                <Button onClick={onStart} disabled={!canCreate}>
+                  {t.landing.start} <span aria-hidden="true">↗</span>
+                </Button>
+              )}
               <p className="max-w-xl text-[13px] text-muted-light">{t.landing.note}</p>
             </div>
             {error && <Alert role="alert">{error}</Alert>}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCommunityImages, type CommunityImage } from '../../api'
 import { useI18n } from '../../i18n/context'
-import { eyebrowClass } from '../../styles'
+import { eyebrowClass, skeletonClass } from '../../styles'
 
 const campaignThemeClasses = [
   'border-pink bg-pink',
@@ -13,6 +13,7 @@ const campaignThemeClasses = [
 export function CommunityCarousel() {
   const { t } = useI18n()
   const [images, setImages] = useState<CommunityImage[]>([])
+  const [loading, setLoading] = useState(true)
   const trackRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,6 +30,8 @@ export function CommunityCarousel() {
         trackRef.current?.scrollTo({ left: 0, behavior: 'smooth' })
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return
+      } finally {
+        if (active) setLoading(false)
       }
     }
 
@@ -41,7 +44,7 @@ export function CommunityCarousel() {
     }
   }, [])
 
-  if (!images.length) return null
+  if (!loading && !images.length) return null
 
   const campaignThemes = new Map<string, string>()
   for (const image of images) {
@@ -92,7 +95,17 @@ export function CommunityCarousel() {
         className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-live="polite"
       >
-        {images.map((image, index) => {
+        {loading ? (
+          Array.from({ length: 4 }, (_, index) => (
+            <div
+              className="min-w-0 basis-[82%] shrink-0 snap-start border border-grid bg-panel p-2 sm:basis-[46%] lg:basis-[31%]"
+              aria-hidden="true"
+              key={index}
+            >
+              <span className={`${skeletonClass} block aspect-[4/5]`} />
+            </div>
+          ))
+        ) : images.map((image, index) => {
           const campaignID = image.id.split('/', 1)[0]
           return (
             <a
@@ -102,7 +115,7 @@ export function CommunityCarousel() {
               rel="noreferrer"
               key={image.id}
             >
-              <span className="grid aspect-[4/5] place-items-center overflow-hidden bg-code">
+              <span className={`${skeletonClass} grid aspect-[4/5] place-items-center overflow-hidden bg-code`}>
                 <img
                   className="block size-full object-contain transition-transform duration-200 group-hover:scale-[1.015]"
                   src={image.url}

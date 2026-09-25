@@ -1,5 +1,7 @@
 export const eyebrowClass = 'text-[11px] font-extrabold tracking-[.18em] uppercase'
 
+export const skeletonClass = 'animate-loading-sweep bg-[linear-gradient(110deg,#161d26_20%,#25313d_45%,#161d26_70%)] [background-size:220%_100%] motion-reduce:animate-none'
+
 export const fieldLabelClass = 'text-xs font-extrabold tracking-[.03em]'
 
 export const fieldControlClass = [

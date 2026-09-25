@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/context'
+import { skeletonClass } from '../../styles'
 import { ImageViewer } from './ImageViewer'
 import type { GenerateResponse } from '../../types'
 
@@ -16,7 +17,7 @@ export function Gallery({ result, loading }: GalleryProps) {
   useEffect(() => setViewerIndex(null), [result?.jobId])
 
   if (loading) {
-    const loadingClass = 'aspect-[4/5] animate-loading-sweep border border-grid bg-[linear-gradient(110deg,#161d26_20%,#25313d_45%,#161d26_70%)] [background-size:220%_100%] motion-reduce:animate-none'
+    const loadingClass = `aspect-[4/5] border border-grid ${skeletonClass}`
     return (
       <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2" role="status" aria-live="polite">
         <div className={loadingClass} />

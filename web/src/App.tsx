@@ -30,6 +30,7 @@ function App() {
     ...readAbout(),
   }))
   const [config, setConfig] = useState<AppConfig | null>(null)
+  const [configLoading, setConfigLoading] = useState(true)
   const [view, setView] = useState<AppView>('landing')
   const [step, setStep] = useState(0)
   const [result, setResult] = useState<GenerateResponse | null>(null)
@@ -45,6 +46,7 @@ function App() {
         setForm((current) => ({ ...current, model: value.model }))
       })
       .catch((reason: Error) => setError(reason.message))
+      .finally(() => setConfigLoading(false))
   }, [])
 
   function update<K extends keyof GenerateRequest>(key: K, value: GenerateRequest[K]) {
@@ -108,13 +110,14 @@ function App() {
       <SiteHeader
         view={view}
         canCreate={ready}
+        configLoading={configLoading}
         hasResult={Boolean(result)}
         onHome={() => setView('landing')}
         onStart={openCreator}
         onResult={() => setView('result')}
         onEdit={() => { setStep(creatorStepIds.length - 1); setView('create') }}
       />
-      {view === 'landing' && <LandingPage config={config} canCreate={ready} error={error} onStart={openCreator} />}
+      {view === 'landing' && <LandingPage config={config} configLoading={configLoading} canCreate={ready} error={error} onStart={openCreator} />}
       {view === 'create' && (
         <CreatorPage
           form={form}

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useI18n } from '../../i18n/context'
 import { Button } from '../ui/Button'
 import type { AppView } from '../../types'
+import { skeletonClass } from '../../styles'
 
 const viewClass: Record<AppView, string> = {
   landing: 'h-dvh overflow-x-hidden overflow-y-auto',
@@ -28,6 +29,7 @@ export function AppShell({ view, children }: { view: AppView; children: ReactNod
 export function SiteHeader({
   view,
   canCreate,
+  configLoading,
   hasResult,
   onHome,
   onStart,
@@ -36,6 +38,7 @@ export function SiteHeader({
 }: {
   view: AppView
   canCreate: boolean
+  configLoading: boolean
   hasResult: boolean
   onHome: () => void
   onStart: () => void
@@ -65,9 +68,13 @@ export function SiteHeader({
             </a>
           )}
           {view === 'landing' && (
-            <Button className="inline-flex items-center whitespace-nowrap max-[520px]:min-h-10 max-[520px]:px-3" onClick={onStart} disabled={!canCreate}>
-              {t.header.start}
-            </Button>
+            configLoading ? (
+              <span className={`${skeletonClass} block h-12 w-[150px] border border-grid max-[520px]:h-10 max-[520px]:w-[132px]`} aria-hidden="true" />
+            ) : (
+              <Button className="inline-flex min-w-[150px] items-center justify-center whitespace-nowrap max-[520px]:min-h-10 max-[520px]:min-w-[132px] max-[520px]:px-3" onClick={onStart} disabled={!canCreate}>
+                {t.header.start}
+              </Button>
+            )
           )}
           {view === 'create' && hasResult && (
             <Button variant="secondary" className="min-h-10" onClick={onResult}>{t.header.viewPosts}</Button>
