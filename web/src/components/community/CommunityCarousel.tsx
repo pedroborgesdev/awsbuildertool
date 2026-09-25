@@ -3,7 +3,6 @@ import { getCommunityImages, type CommunityImage } from '../../api'
 import { useI18n } from '../../i18n/context'
 import { eyebrowClass } from '../../styles'
 
-const refreshInterval = 60_000
 const campaignThemeClasses = [
   'border-pink bg-pink',
   'border-green bg-green',
@@ -19,7 +18,6 @@ export function CommunityCarousel() {
   useEffect(() => {
     let active = true
     let controller: AbortController | null = null
-    let lastLoaded = 0
 
     async function loadImages() {
       controller?.abort()
@@ -28,7 +26,6 @@ export function CommunityCarousel() {
         const next = await getCommunityImages(controller.signal)
         if (!active) return
         setImages(next)
-        lastLoaded = Date.now()
         trackRef.current?.scrollTo({ left: 0, behavior: 'smooth' })
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -36,22 +33,11 @@ export function CommunityCarousel() {
     }
 
     const initialLoad = window.setTimeout(loadImages, 1_000)
-    const refresh = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void loadImages()
-    }, refreshInterval)
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastLoaded >= refreshInterval) {
-        void loadImages()
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       active = false
       controller?.abort()
       window.clearTimeout(initialLoad)
-      window.clearInterval(refresh)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
 

@@ -28,7 +28,7 @@ const ptBR: Messages = {
     uniqueVisitors: 'Visitantes únicos',
     communityEyebrow: 'Feito pela comunidade',
     communityTitle: 'Ideias que já viraram posts.',
-    communityDescription: 'Quatro campanhas da comunidade, escolhidas a cada minuto e exibidas na ordem de suas páginas.',
+    communityDescription: 'Quatro campanhas da comunidade, exibidas na ordem de suas páginas.',
     communityPrevious: 'Mostrar imagens anteriores da comunidade',
     communityNext: 'Mostrar próximas imagens da comunidade',
     communityAlt: (index: number) => `Post gerado pela comunidade ${index}`,

@@ -26,7 +26,7 @@ const en = {
     uniqueVisitors: 'Unique visitors',
     communityEyebrow: 'Made by the community',
     communityTitle: 'Ideas already turned into posts.',
-    communityDescription: 'Four community campaigns, selected every minute with each campaign kept in page order.',
+    communityDescription: 'Four community campaigns, with each campaign kept in page order.',
     communityPrevious: 'Show previous community images',
     communityNext: 'Show next community images',
     communityAlt: (index: number) => `Community-generated post ${index}`,
