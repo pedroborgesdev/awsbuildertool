@@ -45,7 +45,7 @@ export function CreatorPage({
 
   return (
     <div data-creator-scroll className={`min-h-0 overflow-auto ${scrollbarClass}`}>
-      <div className="mx-auto grid w-[min(1180px,100%)] gap-7 px-5 pt-7 pb-[120px] min-[980px]:grid-cols-[180px_minmax(0,1fr)_250px] min-[980px]:items-start min-[980px]:pt-10 min-[980px]:pb-12">
+      <div className="grid min-h-full w-full gap-7 bg-ink px-5 pt-7 pb-[120px] min-[980px]:grid-cols-[180px_minmax(0,1fr)_250px] min-[980px]:items-start min-[980px]:pt-10 min-[980px]:pb-12 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
         <nav aria-label={t.creator.progressLabel}>
           <p className="text-xs font-extrabold tracking-[.08em] text-muted-light uppercase min-[980px]:hidden">{t.creator.progress(step + 1, creatorStepIds.length)}</p>
           <ol className="mt-2.5 grid list-none grid-cols-5 gap-2 p-0 min-[980px]:grid-cols-1">

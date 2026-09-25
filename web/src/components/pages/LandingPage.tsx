@@ -37,11 +37,11 @@ export function LandingPage({ config, canCreate, error, onStart }: LandingPagePr
   const mosaicCardClass = 'flex min-h-37 min-w-0 flex-col justify-between gap-4 overflow-hidden border border-grid bg-panel/90 p-[18px]'
 
   return (
-    <main className="mx-auto grid w-[min(1180px,100%)] gap-18 px-5 pt-7 pb-20">
+    <main className="grid w-full gap-18 bg-ink px-5 pt-7 pb-20 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
       <div className="grid gap-7">
         <aside className="grid gap-2 border border-grid border-l-4 border-l-blue bg-panel/90 px-[18px] py-4" role="note">
           <p className={`${eyebrowClass} text-blue`}>{t.landing.noticeEyebrow}</p>
-          <p className="max-w-[78ch] text-sm leading-relaxed text-[#d5dde4]">{t.landing.notice}</p>
+          <p className="max-w-[78ch] text-sm leading-relaxed text-[#d5dde4] max-[520px]:text-[11px] max-[520px]:leading-[1.45]">{t.landing.notice}</p>
         </aside>
         {stats && (
           <section className="flex flex-wrap gap-3 max-[520px]:flex-nowrap max-[520px]:gap-2" aria-label={t.landing.statsLabel}>

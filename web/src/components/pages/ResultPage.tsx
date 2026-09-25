@@ -23,7 +23,7 @@ export function ResultPage({ result, stale, loading, onEdit, onReset }: ResultPa
 
   return (
     <div className={`min-h-0 overflow-auto ${scrollbarClass}`}>
-      <main className="mx-auto grid w-[min(1180px,100%)] gap-6 px-5 pt-8 pb-16">
+      <main className="grid min-h-full w-full gap-6 bg-ink px-5 pt-8 pb-16 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
         <header className="grid gap-4 min-[720px]:grid-cols-[minmax(0,1fr)_auto] min-[720px]:items-end">
           <div>
             <p className={`${eyebrowClass} text-green`}>{loading ? t.result.creatingEyebrow : t.result.readyEyebrow}</p>
