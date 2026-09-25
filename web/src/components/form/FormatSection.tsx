@@ -1,5 +1,6 @@
 import { contentLevels, formatChoices } from '../../constants'
 import { useI18n } from '../../i18n/context'
+import { fieldLabelClass, panelGridClass } from '../../styles'
 import { ChoiceCard } from '../ui/ChoiceCard'
 import { Field } from '../ui/Field'
 import { NumberControl } from '../ui/NumberControl'
@@ -14,10 +15,10 @@ export function FormatSection({ form, onUpdate }: FormatSectionProps) {
   const { t } = useI18n()
 
   return (
-    <div className="step-fields">
+    <div className={panelGridClass}>
       <fieldset>
-        <legend className="field-label mb-3">{t.publish.where}</legend>
-        <div className="format-grid" role="radiogroup" aria-label={t.publish.whereLabel}>
+        <legend className={`${fieldLabelClass} mb-3`}>{t.publish.where}</legend>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t.publish.whereLabel}>
           {formatChoices.map((choice) => (
             <ChoiceCard key={choice.id} selected={choice.values.includes(form.platform)} onSelect={() => onUpdate('platform', choice.values[0])}>
               <strong className="block text-sm">{choice.dimensions}</strong>
@@ -29,8 +30,8 @@ export function FormatSection({ form, onUpdate }: FormatSectionProps) {
         </div>
       </fieldset>
       <fieldset>
-        <legend className="field-label mb-3">{t.publish.depth}</legend>
-        <div className="choice-grid" role="radiogroup" aria-label={t.publish.depthLabel}>
+        <legend className={`${fieldLabelClass} mb-3`}>{t.publish.depth}</legend>
+        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t.publish.depthLabel}>
           {contentLevels.map((level) => (
             <ChoiceCard key={level} selected={form.contentLevel === level} onSelect={() => onUpdate('contentLevel', level)}>
               <strong className="block text-sm">{t.levels[level].label}</strong>

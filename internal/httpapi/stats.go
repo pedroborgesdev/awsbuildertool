@@ -4,9 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	mathrand "math/rand/v2"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -19,10 +21,16 @@ type siteStats struct {
 	visitorsPath  string
 	mu            sync.RWMutex
 	images        int
+	pageImages    []communityImage
 	visitors      int
 	recount       chan struct{}
 	ready         chan struct{}
 	flushVisitors chan struct{}
+}
+
+type communityImage struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
 }
 
 func newSiteStats(dir string) *siteStats {
@@ -66,9 +74,10 @@ func (s *siteStats) recountLoop() {
 		case <-s.recount:
 		case <-ticker.C:
 		}
-		count := countPageImages(s.dir)
+		pageImages := findPageImages(s.dir)
 		s.mu.Lock()
-		s.images = count
+		s.images = len(pageImages)
+		s.pageImages = pageImages
 		s.mu.Unlock()
 		if !ready {
 			ready = true
@@ -131,26 +140,82 @@ func (s *siteStats) writeVisitors(count int) {
 }
 
 func countPageImages(root string) int {
+	return len(findPageImages(root))
+}
+
+func findPageImages(root string) []communityImage {
 	if strings.TrimSpace(root) == "" {
-		return 0
+		return nil
 	}
-	count := 0
+	images := make([]communityImage, 0)
 	_ = filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil || entry.IsDir() {
 			return nil
 		}
 		name := entry.Name()
-		if strings.HasPrefix(name, "page-") && strings.HasSuffix(name, ".png") {
-			count++
+		if !strings.HasPrefix(name, "page-") || !strings.HasSuffix(strings.ToLower(name), ".png") {
+			return nil
 		}
+		relative, err := filepath.Rel(root, path)
+		if err != nil {
+			return nil
+		}
+		parts := strings.Split(filepath.ToSlash(relative), "/")
+		if len(parts) != 3 || !jobIDPattern.MatchString(parts[0]) || parts[1] != "output" {
+			return nil
+		}
+		images = append(images, communityImage{
+			ID:  parts[0] + "/" + name,
+			URL: "/api/jobs/" + parts[0] + "/files/output/" + name,
+		})
 		return nil
 	})
-	return count
+	return images
+}
+
+func (s *siteStats) randomCampaignImages(limit int) []communityImage {
+	select {
+	case <-s.ready:
+	case <-time.After(2 * time.Second):
+	}
+	s.mu.RLock()
+	images := append([]communityImage(nil), s.pageImages...)
+	s.mu.RUnlock()
+	if limit < 1 || limit > 4 {
+		limit = 4
+	}
+	byCampaign := make(map[string][]communityImage)
+	campaigns := make([]string, 0)
+	for _, image := range images {
+		campaignID := strings.SplitN(image.ID, "/", 2)[0]
+		if _, exists := byCampaign[campaignID]; !exists {
+			campaigns = append(campaigns, campaignID)
+		}
+		byCampaign[campaignID] = append(byCampaign[campaignID], image)
+	}
+	mathrand.Shuffle(len(campaigns), func(i, j int) {
+		campaigns[i], campaigns[j] = campaigns[j], campaigns[i]
+	})
+	if len(campaigns) > limit {
+		campaigns = campaigns[:limit]
+	}
+	selected := make([]communityImage, 0)
+	for _, campaignID := range campaigns {
+		pages := byCampaign[campaignID]
+		sort.Slice(pages, func(i, j int) bool { return pages[i].ID < pages[j].ID })
+		selected = append(selected, pages...)
+	}
+	return selected
 }
 
 func (s *Server) stats(w http.ResponseWriter, _ *http.Request) {
 	images, visitors := s.site.snapshot()
 	writeJSON(w, http.StatusOK, map[string]int{"images": images, "visitors": visitors})
+}
+
+func (s *Server) communityImages(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string][]communityImage{"images": s.site.randomCampaignImages(4)})
 }
 
 func (s *Server) trackVisitors(next http.Handler) http.Handler {

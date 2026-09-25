@@ -1,5 +1,6 @@
 import { colorThemes, languages, pageThemes } from '../../constants'
 import { useI18n } from '../../i18n/context'
+import { fieldLabelClass, panelGridClass } from '../../styles'
 import { AppearanceOption } from '../ui/AppearanceOption'
 import { ChoiceCard } from '../ui/ChoiceCard'
 import { ThemeOption } from '../ui/ThemeOption'
@@ -14,10 +15,10 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
   const { t } = useI18n()
 
   return (
-    <div className="step-fields">
+    <div className={panelGridClass}>
       <fieldset>
-        <legend className="field-label mb-3">{t.look.color}</legend>
-        <div className="theme-picker" role="radiogroup" aria-label={t.look.colorLabel}>
+        <legend className={`${fieldLabelClass} mb-3`}>{t.look.color}</legend>
+        <div className="grid grid-cols-2 gap-2 min-[720px]:grid-cols-3" role="radiogroup" aria-label={t.look.colorLabel}>
           {colorThemes.map((theme) => (
             <ThemeOption
               key={theme}
@@ -28,11 +29,11 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
             />
           ))}
         </div>
-        <p className="field-note">{t.look.colorNote}</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted-light">{t.look.colorNote}</p>
       </fieldset>
       <fieldset>
-        <legend className="field-label mb-3">{t.look.language}</legend>
-        <div className="language-picker" role="radiogroup" aria-label={t.look.languageLabel}>
+        <legend className={`${fieldLabelClass} mb-3`}>{t.look.language}</legend>
+        <div className="grid grid-cols-2 gap-2 min-[720px]:grid-cols-3 [&_button]:min-h-13" role="radiogroup" aria-label={t.look.languageLabel}>
           {languages.map((language) => (
             <ChoiceCard key={language} selected={form.language === language} onSelect={() => onUpdate('language', language)}>
               <strong className="block text-sm">{language}</strong>
@@ -41,8 +42,8 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
         </div>
       </fieldset>
       <fieldset>
-        <legend className="field-label mb-3">{t.look.appearance}</legend>
-        <div className="appearance-picker" role="radiogroup" aria-label={t.look.appearanceLabel}>
+        <legend className={`${fieldLabelClass} mb-3`}>{t.look.appearance}</legend>
+        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t.look.appearanceLabel}>
           {pageThemes.map((theme) => (
             <AppearanceOption
               key={theme}

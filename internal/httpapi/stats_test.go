@@ -2,10 +2,12 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +16,8 @@ import (
 
 func TestStatsCountPageImagesAndUniqueVisitors(t *testing.T) {
 	dir := t.TempDir()
-	output := filepath.Join(dir, "job", "output")
+	jobID := "0123456789abcdef0123456789abcdef"
+	output := filepath.Join(dir, jobID, "output")
 	if err := os.MkdirAll(output, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -66,6 +69,69 @@ func TestStatsCountPageImagesAndUniqueVisitors(t *testing.T) {
 			t.Fatalf("visitors were not saved: %s %v", data, err)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestCommunityImagesReturnsOnlyPageImages(t *testing.T) {
+	dir := t.TempDir()
+	for campaign := 1; campaign <= 5; campaign++ {
+		jobID := fmt.Sprintf("%032x", campaign)
+		output := filepath.Join(dir, jobID, "output")
+		if err := os.MkdirAll(output, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range []string{"page-02.png", "page-01.png", "preview.png", "campaign.pdf"} {
+			if err := os.WriteFile(filepath.Join(output, name), []byte("asset"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	cfg := config.Config{HFModel: "mock", MockHF: true, DesignSystemDir: t.TempDir(), GeneratedDir: dir, WebDist: t.TempDir()}
+	server := New(cfg, testLogger())
+
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/community-images", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	var payload struct {
+		Images []communityImage `json:"images"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Images) != 8 {
+		t.Fatalf("images = %+v", payload.Images)
+	}
+	seenCampaigns := make(map[string]bool)
+	currentCampaign := ""
+	wantPage := 1
+	for _, image := range payload.Images {
+		parts := strings.SplitN(image.ID, "/", 2)
+		if len(parts) != 2 {
+			t.Fatalf("invalid image ID: %q", image.ID)
+		}
+		if parts[0] != currentCampaign {
+			if seenCampaigns[parts[0]] {
+				t.Fatalf("campaign is not contiguous: %+v", payload.Images)
+			}
+			currentCampaign = parts[0]
+			seenCampaigns[currentCampaign] = true
+			wantPage = 1
+		}
+		if parts[1] != fmt.Sprintf("page-%02d.png", wantPage) {
+			t.Fatalf("campaign pages are out of order: %+v", payload.Images)
+		}
+		wantPage++
+		if !strings.HasPrefix(image.URL, "/api/jobs/"+currentCampaign+"/files/output/page-") {
+			t.Fatalf("unexpected URL: %q", image.URL)
+		}
+	}
+	if len(seenCampaigns) != 4 {
+		t.Fatalf("campaign count = %d", len(seenCampaigns))
+	}
+	if cache := response.Header().Get("Cache-Control"); cache != "no-store" {
+		t.Fatalf("cache control = %q", cache)
 	}
 }
 

@@ -18,16 +18,22 @@ export function ReviewStep({ form, onEdit }: { form: GenerateRequest; onEdit: (s
   ]
 
   return (
-    <section className="review-card" aria-label={t.review.title}>
-      <h2>{t.review.title}</h2>
-      <ul>
+    <section className="border border-grid bg-panel p-[18px]" aria-label={t.review.title}>
+      <h2 className="text-base">{t.review.title}</h2>
+      <ul className="mt-4 grid list-none gap-2.5 p-0">
         {creatorStepIds.map((id, index) => (
-          <li key={id}>
+          <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-grid pt-2.5" key={id}>
             <div>
-              <span>{labels[index]}</span>
-              <strong>{summary[index]}</strong>
+              <span className="block text-[11px] font-extrabold tracking-[.08em] text-muted-light uppercase">{labels[index]}</span>
+              <strong className="mt-1 block [overflow-wrap:anywhere] text-sm">{summary[index]}</strong>
             </div>
-            <button type="button" onClick={() => onEdit(index)}>{t.review.edit}</button>
+            <button
+              className="min-h-11 cursor-pointer border border-border bg-transparent px-3 text-xs font-extrabold text-white hover:border-white focus-visible:border-white focus-visible:outline-none"
+              type="button"
+              onClick={() => onEdit(index)}
+            >
+              {t.review.edit}
+            </button>
           </li>
         ))}
       </ul>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { choiceCardClass } from '../../styles'
 
 interface ChoiceCardProps {
   selected: boolean
@@ -12,7 +13,10 @@ export function ChoiceCard({ selected, onSelect, children }: ChoiceCardProps) {
       type="button"
       role="radio"
       aria-checked={selected}
-      className={`format-card ${selected ? 'format-card-active' : ''}`}
+      className={[
+        choiceCardClass,
+        selected ? 'border-green bg-green/[.07] shadow-[inset_0_-4px_#00e582]' : '',
+      ].join(' ')}
       onClick={onSelect}
     >
       {children}

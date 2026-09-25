@@ -1,5 +1,6 @@
 import { PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../../i18n/context'
+import { eyebrowClass, fieldLabelClass, scrollbarClass } from '../../styles'
 import { Button } from '../ui/Button'
 
 const cropSize = 420
@@ -110,18 +111,19 @@ export function PhotoCropper({ source, onCancel, onConfirm }: PhotoCropperProps)
   }
 
   return (
-    <div className="crop-overlay app-scrollbar" role="dialog" aria-modal="true" aria-label={t.crop.label} onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
-      <section className="crop-dialog" onMouseDown={(event) => event.stopPropagation()}>
-        <header className="crop-header">
+    <div className={`fixed inset-0 z-130 grid place-items-center overflow-auto bg-black/90 p-5 backdrop-blur-sm max-[520px]:items-end max-[520px]:p-0 ${scrollbarClass}`} role="dialog" aria-modal="true" aria-label={t.crop.label} onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
+      <section className="w-[min(580px,100%)] border border-border bg-ink shadow-[16px_16px_0_rgba(0,0,0,.34)] max-[520px]:w-full max-[520px]:shadow-none" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="flex items-center justify-between gap-5 border-b border-grid py-4 pr-[18px] pl-[22px]">
           <div>
-            <p className="eyebrow text-blue">{t.crop.eyebrow}</p>
+            <p className={`${eyebrowClass} text-blue`}>{t.crop.eyebrow}</p>
             <h2 className="mt-2 text-lg font-bold">{t.crop.title}</h2>
           </div>
           <Button variant="close" onClick={onCancel} aria-label={t.crop.cancel}>×</Button>
         </header>
-        <div className="crop-body">
-          <div className="crop-canvas-shell">
+        <div className="grid gap-[18px] p-6 max-[520px]:p-4">
+          <div className="relative aspect-square w-[min(420px,100%)] justify-self-center overflow-hidden bg-code [background-image:linear-gradient(45deg,#25313d_25%,transparent_25%),linear-gradient(-45deg,#25313d_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#25313d_75%),linear-gradient(-45deg,transparent_75%,#25313d_75%)] [background-position:0_0,0_10px,10px_-10px,-10px_0] [background-size:20px_20px]">
             <canvas
+              className="block size-full cursor-grab touch-none active:cursor-grabbing"
               ref={canvasRef}
               width={cropSize}
               height={cropSize}
@@ -130,17 +132,17 @@ export function PhotoCropper({ source, onCancel, onConfirm }: PhotoCropperProps)
               onPointerUp={() => { dragRef.current = null }}
               onPointerCancel={() => { dragRef.current = null }}
             />
-            <span className="crop-frame" aria-hidden="true" />
+            <span className="pointer-events-none absolute inset-0 border-[3px] border-blue shadow-[inset_0_0_0_1px_#161d26] before:absolute before:inset-x-0 before:top-1/3 before:bottom-1/3 before:border-y before:border-white/40 before:content-[''] after:absolute after:inset-y-0 after:right-1/3 after:left-1/3 after:border-x after:border-white/40 after:content-['']" aria-hidden="true" />
           </div>
-          <label className="crop-zoom">
-            <span className="field-label">{t.crop.zoom}</span>
-            <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} />
+          <label className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5">
+            <span className={fieldLabelClass}>{t.crop.zoom}</span>
+            <input className="w-full accent-blue" type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} />
           </label>
           <p className="text-xs leading-5 text-muted-light">{t.crop.hint}</p>
         </div>
-        <footer className="crop-actions">
-          <Button variant="secondary" onClick={onCancel}>{t.crop.dismiss}</Button>
-          <Button variant="primary" disabled={!image} onClick={finishCrop}>{t.crop.confirm}</Button>
+        <footer className="flex justify-end gap-2.5 border-t border-grid px-5 py-4 max-[520px]:flex-wrap max-[520px]:p-3">
+          <Button className="max-[520px]:min-w-35 max-[520px]:flex-1" variant="secondary" onClick={onCancel}>{t.crop.dismiss}</Button>
+          <Button className="max-[520px]:min-w-35 max-[520px]:flex-1" variant="primary" disabled={!image} onClick={finishCrop}>{t.crop.confirm}</Button>
         </footer>
       </section>
     </div>

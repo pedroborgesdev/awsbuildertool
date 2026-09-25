@@ -58,8 +58,8 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
   }
 
   return (
-    <form onSubmit={submit} className="brief-form" aria-busy={busy}>
-      <fieldset disabled={busy} className="step-panel">
+    <form onSubmit={submit} className="grid gap-[22px]" aria-busy={busy}>
+      <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
         {step === 0 && <CentralIdeaSection form={form} onUpdate={onUpdate} />}
         {step === 1 && <FormatSection form={form} onUpdate={onUpdate} />}
         {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
@@ -71,9 +71,9 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
           </>
         )}
       </fieldset>
-      {issueKey && <p className="step-issue" role="alert">{t.errors[issueKey]}</p>}
+      {issueKey && <p className="border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="alert">{t.errors[issueKey]}</p>}
       {error && <ErrorAlert>{error}</ErrorAlert>}
-      <div className="creator-nav">
+      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2.5 border-t border-grid bg-ink/95 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] min-[980px]:static min-[980px]:justify-between min-[980px]:border-0 min-[980px]:bg-transparent min-[980px]:p-0 [&>button]:flex-1 min-[980px]:[&>button]:min-w-[148px] min-[980px]:[&>button]:flex-none">
         <Button variant="secondary" onClick={() => { setAttempted(false); step === 0 ? onExit() : onStepChange(step - 1) }} disabled={busy}>
           {step === 0 ? t.nav.home : t.nav.previous}
         </Button>

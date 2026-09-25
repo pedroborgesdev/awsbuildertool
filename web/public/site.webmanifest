@@ -1,0 +1,7 @@
+{
+  "name": "Builder Tool",
+  "short_name": "Builder Tool",
+  "theme_color": "#161d26",
+  "background_color": "#161d26",
+  "display": "standalone"
+}

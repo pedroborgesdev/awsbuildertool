@@ -1,4 +1,5 @@
 import { useI18n } from '../../i18n/context'
+import { eyebrowClass, scrollbarClass } from '../../styles'
 import { DownloadFile } from '../ui/DownloadFile'
 import { Button } from '../ui/Button'
 import { Gallery } from '../gallery/Gallery'
@@ -21,31 +22,31 @@ export function ResultPage({ result, stale, loading, onEdit, onReset }: ResultPa
   const hasDownloads = Boolean(preview || documents.length)
 
   return (
-    <div className="result-scroll app-scrollbar">
-      <main className="result-page">
-        <header className="result-heading">
+    <div className={`min-h-0 overflow-auto ${scrollbarClass}`}>
+      <main className="mx-auto grid w-[min(1180px,100%)] gap-6 px-5 pt-8 pb-16">
+        <header className="grid gap-4 min-[720px]:grid-cols-[minmax(0,1fr)_auto] min-[720px]:items-end">
           <div>
-            <p className="eyebrow text-green">{loading ? t.result.creatingEyebrow : t.result.readyEyebrow}</p>
-            <h1>{loading ? t.result.creatingTitle : t.result.readyTitle}</h1>
-            <p>{loading ? t.result.creatingText : t.result.readyText(images.length)}</p>
+            <p className={`${eyebrowClass} text-green`}>{loading ? t.result.creatingEyebrow : t.result.readyEyebrow}</p>
+            <h1 className="mt-2 max-w-[14ch] text-[clamp(2rem,6vw,3.4rem)] leading-[.98]">{loading ? t.result.creatingTitle : t.result.readyTitle}</h1>
+            <p className="mt-3 max-w-[38rem] leading-relaxed text-muted-light">{loading ? t.result.creatingText : t.result.readyText(images.length)}</p>
           </div>
-          <div className="result-actions">
+          <div className="grid gap-4 min-[720px]:grid-flow-col min-[720px]:justify-end">
             <Button variant="secondary" onClick={onEdit} disabled={loading}>{t.result.edit}</Button>
             <Button onClick={onReset} disabled={loading}>{t.result.another}</Button>
           </div>
         </header>
 
         {stale && !loading && (
-          <p className="stale-note" role="status">{t.result.stale}</p>
+          <p className="border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="status">{t.result.stale}</p>
         )}
 
-        <div className="result-layout">
+        <div className="grid gap-4 min-[980px]:grid-cols-[minmax(0,1fr)_280px] min-[980px]:items-start">
           <Gallery result={result} loading={loading} />
           {!loading && (hasDownloads || result) && (
-            <aside className="result-side" aria-label={t.result.downloads}>
+            <aside aria-label={t.result.downloads}>
               {hasDownloads && (
-                <div className="download-stack">
-                  <p className="eyebrow text-blue">{t.result.files}</p>
+                <div className="grid gap-3">
+                  <p className={`${eyebrowClass} text-blue`}>{t.result.files}</p>
                   {preview && <DownloadFile href={preview.url} badge="PNG">{t.result.overview}</DownloadFile>}
                   {documents.map((file) => (
                     <DownloadFile key={file.url} href={file.url} badge="PDF" trailing="↓">{t.result.pdf}</DownloadFile>

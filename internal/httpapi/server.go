@@ -80,6 +80,7 @@ func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.health)
 	mux.HandleFunc("GET /api/stats", s.stats)
+	mux.HandleFunc("GET /api/community-images", s.communityImages)
 	mux.HandleFunc("GET /api/config", s.clientConfig)
 	mux.HandleFunc("POST /api/prompt", s.previewPrompt)
 	mux.HandleFunc("POST /api/generate", s.generate)

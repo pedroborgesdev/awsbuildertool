@@ -17,9 +17,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export type SiteStats = { images: number; visitors: number }
+export type CommunityImage = { id: string; url: string }
 
 export function getStats(): Promise<SiteStats> {
   return request<SiteStats>('/api/stats')
+}
+
+export async function getCommunityImages(signal?: AbortSignal): Promise<CommunityImage[]> {
+  const result = await request<{ images: CommunityImage[] }>('/api/community-images', { signal })
+  return result.images
 }
 
 export function getConfig(): Promise<AppConfig> {
