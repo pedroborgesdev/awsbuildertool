@@ -1,7 +1,7 @@
 import { useEffect, type FormEvent } from 'react'
 import { canVisitStep, choiceFor, colorThemes, contentLevels, creatorStepIds, pageThemes } from '../../constants'
 import { useI18n } from '../../i18n/context'
-import { eyebrowClass, gridBackgroundClass, scrollbarClass } from '../../styles'
+import { eyebrowClass, gridBackgroundClass } from '../../styles'
 import { BriefForm } from '../form/BriefForm'
 import type { AppConfig, GenerateRequest } from '../../types'
 
@@ -44,8 +44,8 @@ export function CreatorPage({
   }, [step])
 
   return (
-    <div data-creator-scroll className={`h-full min-h-0 overflow-x-hidden overflow-y-scroll overscroll-y-contain ${scrollbarClass}`}>
-      <div className="grid min-h-full w-full gap-7 bg-ink px-5 pt-7 pb-[120px] min-[980px]:grid-cols-[180px_minmax(0,1fr)_250px] min-[980px]:items-start min-[980px]:pt-10 min-[980px]:pb-12 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
+    <div className="h-full min-h-0 overflow-hidden min-[1200px]:mx-[72px]">
+      <div className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] gap-4 bg-ink px-5 pt-5 min-[980px]:grid-cols-[180px_minmax(0,1fr)_250px] min-[980px]:grid-rows-[minmax(0,1fr)] min-[980px]:items-stretch min-[980px]:gap-7 min-[980px]:pt-8 min-[1200px]:px-10 min-[1600px]:px-14">
         <nav aria-label={t.creator.progressLabel}>
           <p className="text-xs font-extrabold tracking-[.08em] text-muted-light uppercase min-[980px]:hidden">{t.creator.progress(step + 1, creatorStepIds.length)}</p>
           <ol className="mt-2.5 grid list-none grid-cols-5 gap-2 p-0 min-[980px]:grid-cols-1">
@@ -76,13 +76,13 @@ export function CreatorPage({
           </ol>
         </nav>
 
-        <section className="min-w-0" aria-labelledby="creator-title">
+        <section className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)]" aria-labelledby="creator-title">
           <header>
             <p className={`${eyebrowClass} text-pink`}>{current.label}</p>
             <h1 className="mt-2 max-w-[16ch] text-[clamp(1.8rem,4vw,2.8rem)] leading-[.98] outline-none" id="creator-title" tabIndex={-1}>{current.title}</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted-light">{current.description}</p>
           </header>
-          <div className="mt-[22px]">
+          <div className="mt-[22px] min-h-0">
             <BriefForm
               form={form}
               config={config}

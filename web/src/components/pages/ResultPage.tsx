@@ -25,16 +25,16 @@ export function ResultPage({ result, stale, loading, error, onEdit, onRetry, onR
   const hasDownloads = Boolean(preview || documents.length)
 
   return (
-    <div className={`min-h-0 overflow-auto ${scrollbarClass}`}>
+    <div className={`min-h-0 overflow-auto min-[1200px]:mx-[72px] ${scrollbarClass}`}>
       <div className="sticky top-0 z-30 border-b border-grid bg-ink/95 backdrop-blur-sm">
-        <div className="flex min-h-16 w-full items-center justify-end gap-2 overflow-x-auto px-5 py-2.5 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
+        <div className="flex min-h-16 w-full items-center justify-end gap-2 overflow-x-auto px-5 py-2.5 min-[1200px]:px-10 min-[1600px]:px-14 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
           <Button variant="secondary" onClick={onEdit} disabled={loading}>{t.result.edit}</Button>
           <Button variant="secondary" onClick={onRetry} disabled={loading || !result}>{t.result.retry}</Button>
           <Button onClick={onReset} disabled={loading}>{t.result.another}</Button>
         </div>
       </div>
 
-      <main className="grid min-h-full w-full gap-6 bg-ink px-5 pt-7 pb-16 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
+      <main className="grid min-h-full w-full gap-6 bg-ink px-5 pt-7 pb-16 min-[1200px]:px-10 min-[1600px]:px-14">
         <header>
           <p className={`${eyebrowClass} text-green`}>{loading ? t.result.creatingEyebrow : t.result.readyEyebrow}</p>
           <h1 className="mt-2 max-w-[14ch] text-[clamp(2rem,6vw,3.4rem)] leading-[.98]">{loading ? t.result.creatingTitle : t.result.readyTitle}</h1>

@@ -9,6 +9,7 @@ import { LookSection } from './LookSection'
 import { ReviewStep } from './ReviewStep'
 import { Button } from '../ui/Button'
 import { ErrorAlert } from '../ui/Alert'
+import { scrollbarClass } from '../../styles'
 import type { AppConfig, GenerateRequest } from '../../types'
 
 interface BriefFormProps {
@@ -58,22 +59,24 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-[22px]" aria-busy={busy}>
-      <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
-        {step === 0 && (
-          <>
-            <CentralIdeaSection form={form} onUpdate={onUpdate} />
-            <ActionSection form={form} onUpdate={onUpdate} />
-          </>
-        )}
-        {step === 1 && <FormatSection form={form} onUpdate={onUpdate} />}
-        {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
-        {step === 3 && <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />}
-        {step === 4 && <ReviewStep form={form} onEdit={(next) => { setAttempted(false); onStepChange(next) }} />}
-      </fieldset>
-      {issueKey && <p className="border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="alert">{t.errors[issueKey]}</p>}
-      {error && <ErrorAlert>{error}</ErrorAlert>}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2.5 border-t border-grid bg-ink/95 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] min-[980px]:static min-[980px]:justify-between min-[980px]:border-0 min-[980px]:bg-transparent min-[980px]:p-0 [&>button]:flex-1 min-[980px]:[&>button]:min-w-[148px] min-[980px]:[&>button]:flex-none">
+    <form onSubmit={submit} className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto]" aria-busy={busy}>
+      <div data-creator-scroll className={`min-h-0 overflow-x-hidden overflow-y-scroll overscroll-y-contain pr-3 pb-5 ${scrollbarClass}`}>
+        <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
+          {step === 0 && (
+            <>
+              <CentralIdeaSection form={form} onUpdate={onUpdate} />
+              <ActionSection form={form} onUpdate={onUpdate} />
+            </>
+          )}
+          {step === 1 && <FormatSection form={form} onUpdate={onUpdate} />}
+          {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
+          {step === 3 && <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />}
+          {step === 4 && <ReviewStep form={form} onEdit={(next) => { setAttempted(false); onStepChange(next) }} />}
+        </fieldset>
+        {issueKey && <p className="mt-[22px] border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="alert">{t.errors[issueKey]}</p>}
+        {error && <div className="mt-[22px]"><ErrorAlert>{error}</ErrorAlert></div>}
+      </div>
+      <div className="flex shrink-0 gap-2.5 border-t border-grid bg-ink py-3 pb-[calc(12px+env(safe-area-inset-bottom))] [&>button]:flex-1 min-[980px]:justify-between min-[980px]:pb-3 min-[980px]:[&>button]:min-w-[148px] min-[980px]:[&>button]:flex-none">
         <Button variant="secondary" onClick={() => { setAttempted(false); step === 0 ? onExit() : onStepChange(step - 1) }} disabled={busy}>
           {step === 0 ? t.nav.home : t.nav.previous}
         </Button>
