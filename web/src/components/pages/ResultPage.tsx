@@ -26,7 +26,7 @@ export function ResultPage({ result, stale, loading, error, onEdit, onRetry, onR
 
   return (
     <div className={`min-h-0 overflow-auto border-x border-grid min-[1200px]:mx-[96px] min-[1600px]:mx-[112px] ${scrollbarClass}`}>
-      <div className="sticky top-0 z-30 border-b border-grid bg-ink/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-30 border-b border-grid bg-ink">
         <div className="flex min-h-16 w-full items-center justify-end gap-2 overflow-x-auto px-5 py-2.5 min-[980px]:px-8 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
           <Button variant="secondary" onClick={onEdit} disabled={loading}>{t.result.edit}</Button>
           <Button variant="secondary" onClick={onRetry} disabled={loading || !result}>{t.result.retry}</Button>

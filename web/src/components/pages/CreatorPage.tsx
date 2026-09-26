@@ -40,7 +40,7 @@ export function CreatorPage({
   }, [step])
 
   return (
-    <div className="h-full min-h-0 overflow-hidden border-x border-grid min-[1200px]:mx-[96px] min-[1600px]:mx-[112px]">
+    <div className="isolate h-full min-h-0 overflow-hidden border-x border-grid bg-ink min-[1200px]:mx-[96px] min-[1600px]:mx-[112px]">
       <div className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] bg-ink">
         <nav className="border-b border-grid px-5 py-3 min-[980px]:px-8" aria-label={t.creator.progressLabel}>
           <p className="text-[10px] font-extrabold tracking-[.08em] text-muted-light uppercase">{t.creator.progress(step + 1, creatorStepIds.length)}</p>

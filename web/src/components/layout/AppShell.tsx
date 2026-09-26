@@ -46,7 +46,7 @@ export function SiteHeader({
   const { t } = useI18n()
 
   return (
-    <header className="sticky top-0 z-30 h-[72px] border-b border-grid bg-ink min-[1200px]:bg-transparent">
+    <header className="sticky top-0 z-30 h-[72px] border-b border-grid bg-ink">
       <div className="flex h-full w-full items-center justify-between gap-4 bg-ink px-5 py-2.5 min-[1200px]:mx-[72px] min-[1200px]:w-auto min-[1200px]:px-10 min-[1600px]:px-14">
         <button
           type="button"
