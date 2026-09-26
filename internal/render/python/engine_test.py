@@ -191,7 +191,7 @@ class EngineTests(unittest.TestCase):
                      {"title":"Construir","text":"","iconIntent":"brackets","value":35},
                      {"title":"Medir","text":"","iconIntent":"signal","value":20}]}
         pie=render_page(content,0,1,(1080,1080),self.design,1)
-        bars=render_page(content,0,1,(1080,1080),self.design,3)
+        bars=render_page(content,0,1,(1080,1080),self.design,2)
         self.assertEqual(pie.component_rules[0]["component"],"pie-chart")
         self.assertEqual(bars.component_rules[0]["component"],"bar-chart")
         self.assertTrue(bars.component_rules[0]["commonBaseline"])
@@ -303,14 +303,14 @@ class EngineTests(unittest.TestCase):
         wrapped=wrap("https://example.com/"+"a"*120,f,170)
         self.assertGreater(len(wrapped.splitlines()),5)
         for line in wrapped.splitlines(): self.assertLessEqual(f.getlength(line),170)
-        with self.assertRaisesRegex(ValueError,"glifo"):
+        with self.assertRaisesRegex(ValueError,"glyph"):
             font_path("\U0010FFFF")
 
     def test_overflow_and_collisions_fail_before_export(self):
         p=Page(1080,1080,True,self.design,1)
         p.panel("a",(0,0,100,100))
         with self.assertRaisesRegex(ValueError,"collision"): p.panel("b",(50,50,150,150))
-        with self.assertRaisesRegex(ValueError,"fora"): p.reserve("outside",(0,0,200,200),"a")
+        with self.assertRaisesRegex(ValueError,"outside"): p.reserve("outside",(0,0,200,200),"a")
         with self.assertRaisesRegex(ValueError,"does not fit"):
             p.text("too-long","too much text "*100,(10,10,90,90),"a",24,22)
         with tempfile.TemporaryDirectory() as temp:

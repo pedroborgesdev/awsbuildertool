@@ -7,11 +7,13 @@ from pathlib import Path
 WORK = Path(os.environ["RENDER_WORK"]).resolve()
 DESIGN = Path(os.environ["AWS_DESIGN_SYSTEM_DIR"]).resolve()
 
-# Discover package directories for the Python interpreter in use.
+# Discover standard-library and package directories for the Python interpreter
+# in use. Hosted runners may install Python outside /usr (for example under
+# /opt/hostedtoolcache), so hard-coded system roots are not sufficient.
 _python_paths = sysconfig.get_paths()
-SITE_PACKAGES = tuple(
+PYTHON_READ_ROOTS = tuple(
     Path(path).resolve()
-    for key in ("purelib", "platlib")
+    for key in ("stdlib", "platstdlib", "purelib", "platlib")
     if (path := _python_paths.get(key))
 )
 
@@ -19,7 +21,7 @@ READ_ROOTS = tuple(dict.fromkeys(
     p for p in (
         WORK,
         DESIGN,
-        *SITE_PACKAGES,
+        *PYTHON_READ_ROOTS,
         Path("/usr"),
         Path("/lib"),
         Path("/lib64"),
