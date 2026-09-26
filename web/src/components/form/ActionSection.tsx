@@ -17,18 +17,13 @@ export function ActionSection({ form, onUpdate }: ActionSectionProps) {
       <Field label={t.finish.cta} hint={t.finish.ctaHint}>
         <input className={fieldControlClass} maxLength={280} value={form.cta} onChange={(e) => onUpdate('cta', e.target.value)} placeholder={t.finish.ctaPlaceholder} />
       </Field>
-      <details className="border border-grid bg-panel px-4 pt-1 pb-4">
-        <summary className="min-h-12 cursor-pointer py-3.5 text-[13px] font-extrabold">{t.finish.adjustments}</summary>
-        <div className={panelGridClass}>
-          <Field label={t.finish.tone}>
-            <input className={fieldControlClass} value={form.tone} onChange={(e) => onUpdate('tone', e.target.value)} />
-          </Field>
-          <div className="grid gap-3">
-            <Toggle checked={form.firstPageCta} onChange={(value) => onUpdate('firstPageCta', value)} label={t.finish.firstCta} />
-            <Toggle checked={form.lastPageCta} onChange={(value) => onUpdate('lastPageCta', value)} label={t.finish.lastCta} />
-          </div>
-        </div>
-      </details>
+      <Field label={t.finish.tone}>
+        <input className={fieldControlClass} value={form.tone} onChange={(e) => onUpdate('tone', e.target.value)} />
+      </Field>
+      <div className="grid gap-3">
+        <Toggle checked={form.firstPageCta} onChange={(value) => onUpdate('firstPageCta', value)} label={t.finish.firstCta} />
+        <Toggle checked={form.lastPageCta} onChange={(value) => onUpdate('lastPageCta', value)} label={t.finish.lastCta} />
+      </div>
     </div>
   )
 }

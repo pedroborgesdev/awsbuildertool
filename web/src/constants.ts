@@ -39,7 +39,7 @@ export function stepIssue(step: number, form: GenerateRequest): StepIssue {
   if (step === 0) {
     if (form.theme.trim().length < 3) return 'topic'
     if (form.goal.trim().length < 3) return 'goal'
-    if (form.additionalContext.trim().length < 150) return 'context'
+    if (form.additionalContext.trim().length < 200) return 'context'
   }
   return ''
 }

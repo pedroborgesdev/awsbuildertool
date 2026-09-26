@@ -57,12 +57,12 @@ const ptBR: Messages = {
     idea: {
       label: 'Ideia',
       title: 'O que você vai compartilhar?',
-      description: 'Comece pelo ponto do post e pelo contexto que ele precisa acertar.',
+      description: 'Defina a ideia, o contexto, a voz e o chamado para ação do post.',
     },
     publish: {
       label: 'Publicar',
       title: 'Escolha onde ele vive.',
-      description: 'Escolha o canal, quantas páginas fazer e como chamar a pessoa para agir.',
+      description: 'Escolha o canal, quantas páginas fazer e o quanto dizer.',
     },
     look: {
       label: 'Visual',
@@ -83,7 +83,7 @@ const ptBR: Messages = {
   errors: {
     topic: 'O tema precisa ter pelo menos 3 caracteres.',
     goal: 'Diga o que o post deve alcançar.',
-    context: 'O contexto precisa ter pelo menos 150 caracteres.',
+    context: 'O contexto precisa ter pelo menos 200 caracteres.',
     photoType: 'Escolha uma foto JPEG, PNG ou WebP.',
     photoOpen: 'Não foi possível abrir a foto selecionada.',
     generate: 'Não foi possível criar os posts.',
@@ -97,6 +97,7 @@ const ptBR: Messages = {
     audiencePlaceholder: 'Ex.: Pessoas desenvolvedoras aprendendo AWS',
     context: 'Contexto',
     contextPlaceholder: 'Fatos, exemplos, fontes e o que o post precisa incluir ou deixar de fora.',
+    contextMinimum: (count: number) => `${count} / mínimo 200`,
   },
   publish: {
     where: 'Onde será publicado?',
@@ -215,6 +216,10 @@ const ptBR: Messages = {
     pdf: 'Baixar PDF',
   },
   gallery: {
+    eyebrow: 'Resultado',
+    title: 'Imagens geradas',
+    previous: 'Mostrar imagens anteriores',
+    next: 'Mostrar próximas imagens',
     composing: 'Compondo suas páginas…',
     empty: 'Suas páginas aparecem aqui quando estiverem prontas.',
     open: (index: number) => `Abrir post ${index}`,

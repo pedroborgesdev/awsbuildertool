@@ -4,8 +4,10 @@ import { eyebrowClass, scrollbarClass } from '../../styles'
 import { Button } from '../ui/Button'
 import type { GeneratedAsset } from '../../types'
 
+type ViewerImage = Pick<GeneratedAsset, 'name' | 'url' | 'width' | 'height'>
+
 interface ImageViewerProps {
-  images: GeneratedAsset[]
+  images: ViewerImage[]
   index: number
   onChange: (index: number) => void
   onClose: () => void
@@ -67,7 +69,9 @@ export function ImageViewer({ images, index, onChange, onClose }: ImageViewerPro
             </svg>
             <span className="max-[760px]:sr-only">{t.viewer.download}</span>
           </a>
-          <span className="text-center text-[10px] text-muted-light max-[760px]:hidden">{current.width} × {current.height}</span>
+          <span className="text-center text-[10px] text-muted-light max-[760px]:hidden">
+            {current.width && current.height ? `${current.width} × ${current.height}` : ''}
+          </span>
           <button className={`${navButtonClass} justify-self-end border-green bg-green px-[18px] text-ink`} type="button" onClick={next} disabled={images.length < 2}>
             {t.viewer.next} <span aria-hidden="true">→</span>
           </button>

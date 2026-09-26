@@ -11,11 +11,11 @@ export const fieldControlClass = [
 ].join(' ')
 
 export const scrollbarClass = [
-  '[scrollbar-width:thin] [scrollbar-color:#42b4ff_#10161e] [scrollbar-gutter:stable]',
+  '[scrollbar-width:thin] [scrollbar-color:#00e582_#10161e] [scrollbar-gutter:stable]',
   '[&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3',
   '[&::-webkit-scrollbar-track]:bg-code',
   '[&::-webkit-scrollbar-thumb]:min-h-11 [&::-webkit-scrollbar-thumb]:rounded-none',
-  '[&::-webkit-scrollbar-thumb]:border-[3px] [&::-webkit-scrollbar-thumb]:border-code [&::-webkit-scrollbar-thumb]:bg-blue',
+  '[&::-webkit-scrollbar-thumb]:border-[3px] [&::-webkit-scrollbar-thumb]:border-code [&::-webkit-scrollbar-thumb]:bg-green',
   '[&::-webkit-scrollbar-thumb:hover]:bg-pink [&::-webkit-scrollbar-corner]:bg-code',
 ].join(' ')
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getCommunityImages, type CommunityImage } from '../../api'
 import { useI18n } from '../../i18n/context'
 import { eyebrowClass, skeletonClass } from '../../styles'
+import { ImageViewer } from '../gallery/ImageViewer'
 
 const campaignThemeClasses = [
   'border-pink bg-pink',
@@ -14,6 +15,7 @@ export function CommunityCarousel() {
   const { t } = useI18n()
   const [images, setImages] = useState<CommunityImage[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -60,76 +62,83 @@ export function CommunityCarousel() {
     track.scrollBy({ left: direction * Math.max(track.clientWidth * 0.82, 260), behavior: 'smooth' })
   }
 
-  return (
-    <section className="grid gap-[22px]" aria-labelledby="community-title">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className={`${eyebrowClass} text-green`}>{t.landing.communityEyebrow}</p>
-          <h2 className="mt-2.5 max-w-[22ch] text-[clamp(1.6rem,4vw,2.4rem)] leading-[1.05]" id="community-title">
-            {t.landing.communityTitle}
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-light">{t.landing.communityDescription}</p>
-        </div>
-        <div className="hidden shrink-0 gap-2 sm:flex">
-          <button
-            className="grid size-11 cursor-pointer place-items-center border border-border bg-ink text-lg text-white hover:border-blue hover:bg-blue hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
-            type="button"
-            aria-label={t.landing.communityPrevious}
-            onClick={() => move(-1)}
-          >
-            ←
-          </button>
-          <button
-            className="grid size-11 cursor-pointer place-items-center border border-green bg-green text-lg text-ink hover:border-blue hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
-            type="button"
-            aria-label={t.landing.communityNext}
-            onClick={() => move(1)}
-          >
-            →
-          </button>
-        </div>
-      </div>
+  const viewerImages = images.map((image) => ({ name: image.id, url: image.url }))
 
-      <div
-        ref={trackRef}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        aria-live="polite"
-      >
-        {loading ? (
-          Array.from({ length: 4 }, (_, index) => (
-            <div
-              className="min-w-0 basis-[82%] shrink-0 snap-start border border-grid bg-panel p-2 sm:basis-[46%] lg:basis-[31%]"
-              aria-hidden="true"
-              key={index}
+  return (
+    <>
+      <section className="grid gap-[22px]" aria-labelledby="community-title">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className={`${eyebrowClass} text-green`}>{t.landing.communityEyebrow}</p>
+            <h2 className="mt-2.5 max-w-[22ch] text-[clamp(1.6rem,4vw,2.4rem)] leading-[1.05]" id="community-title">
+              {t.landing.communityTitle}
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-light">{t.landing.communityDescription}</p>
+          </div>
+          <div className="hidden shrink-0 gap-2 sm:flex">
+            <button
+              className="grid size-11 cursor-pointer place-items-center border border-border bg-ink text-lg text-white hover:border-blue hover:bg-blue hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
+              type="button"
+              aria-label={t.landing.communityPrevious}
+              onClick={() => move(-1)}
             >
-              <span className={`${skeletonClass} block aspect-[4/5]`} />
-            </div>
-          ))
-        ) : images.map((image, index) => {
-          const campaignID = image.id.split('/', 1)[0]
-          return (
-            <a
-              className={`group min-w-0 basis-[82%] shrink-0 snap-start border p-2 no-underline transition-colors sm:basis-[46%] lg:basis-[31%] ${campaignThemes.get(campaignID)}`}
-              href={image.url}
-              target="_blank"
-              rel="noreferrer"
-              key={image.id}
+              ←
+            </button>
+            <button
+              className="grid size-11 cursor-pointer place-items-center border border-green bg-green text-lg text-ink hover:border-blue hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
+              type="button"
+              aria-label={t.landing.communityNext}
+              onClick={() => move(1)}
             >
-              <span className={`${skeletonClass} grid aspect-[4/5] place-items-center overflow-hidden bg-code`}>
-                <img
-                  className="block size-full object-contain transition-transform duration-200 group-hover:scale-[1.015]"
-                  src={image.url}
-                  alt={t.landing.communityAlt(index + 1)}
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                  draggable={false}
-                />
-              </span>
-            </a>
-          )
-        })}
-      </div>
-    </section>
+              →
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={trackRef}
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-live="polite"
+        >
+          {loading ? (
+            Array.from({ length: 4 }, (_, index) => (
+              <div
+                className="min-w-0 basis-[82%] shrink-0 snap-start border border-grid bg-panel p-2 sm:basis-[46%] lg:basis-[31%]"
+                aria-hidden="true"
+                key={index}
+              >
+                <span className={`${skeletonClass} block aspect-[4/5]`} />
+              </div>
+            ))
+          ) : images.map((image, index) => {
+            const campaignID = image.id.split('/', 1)[0]
+            return (
+              <button
+                className={`group min-w-0 basis-[82%] shrink-0 cursor-zoom-in snap-start border p-2 text-left transition-colors sm:basis-[46%] lg:basis-[31%] ${campaignThemes.get(campaignID)}`}
+                type="button"
+                onClick={() => setViewerIndex(index)}
+                aria-label={t.landing.communityAlt(index + 1)}
+                key={image.id}
+              >
+                <span className={`${skeletonClass} grid aspect-[4/5] place-items-center overflow-hidden bg-code`}>
+                  <img
+                    className="block size-full object-contain transition-transform duration-200 group-hover:scale-[1.015]"
+                    src={image.url}
+                    alt={t.landing.communityAlt(index + 1)}
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                    draggable={false}
+                  />
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+      {viewerIndex !== null && viewerImages[viewerIndex] && (
+        <ImageViewer images={viewerImages} index={viewerIndex} onChange={setViewerIndex} onClose={() => setViewerIndex(null)} />
+      )}
+    </>
   )
 }

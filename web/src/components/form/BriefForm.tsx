@@ -60,13 +60,13 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
   return (
     <form onSubmit={submit} className="grid gap-[22px]" aria-busy={busy}>
       <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
-        {step === 0 && <CentralIdeaSection form={form} onUpdate={onUpdate} />}
-        {step === 1 && (
+        {step === 0 && (
           <>
-            <FormatSection form={form} onUpdate={onUpdate} />
+            <CentralIdeaSection form={form} onUpdate={onUpdate} />
             <ActionSection form={form} onUpdate={onUpdate} />
           </>
         )}
+        {step === 1 && <FormatSection form={form} onUpdate={onUpdate} />}
         {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
         {step === 3 && <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />}
         {step === 4 && <ReviewStep form={form} onEdit={(next) => { setAttempted(false); onStepChange(next) }} />}

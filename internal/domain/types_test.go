@@ -111,12 +111,12 @@ func TestValidateAcceptsKnownFormat(t *testing.T) {
 func TestValidateContextMinimum(t *testing.T) {
 	r := validRequest()
 	r.Normalize("modelo/padrao")
-	r.AdditionalContext = strings.Repeat("a", 149)
+	r.AdditionalContext = strings.Repeat("a", 199)
 	if err := r.Validate(); err == nil {
-		t.Fatal("expected an error for context shorter than 150 characters")
+		t.Fatal("expected an error for context shorter than 200 characters")
 	}
-	r.AdditionalContext = strings.Repeat("a", 150)
+	r.AdditionalContext = strings.Repeat("a", 200)
 	if err := r.Validate(); err != nil {
-		t.Fatalf("150-character context rejected: %v", err)
+		t.Fatalf("200-character context rejected: %v", err)
 	}
 }

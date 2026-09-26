@@ -55,12 +55,12 @@ const en = {
     idea: {
       label: 'Idea',
       title: 'What are you sharing?',
-      description: 'Start with the point of the post and the context it needs to get right.',
+      description: 'Define the idea, context, voice, and call to action for the post.',
     },
     publish: {
       label: 'Publish',
       title: 'Choose where it belongs.',
-      description: 'Pick a channel, how many pages to make, and how to invite people to act.',
+      description: 'Pick a channel, how many pages to make, and how much to say.',
     },
     look: {
       label: 'Look',
@@ -81,7 +81,7 @@ const en = {
   errors: {
     topic: 'Give the post a topic of at least 3 characters.',
     goal: 'Say what the post should achieve.',
-    context: 'Context needs at least 150 characters.',
+    context: 'Context needs at least 200 characters.',
     photoType: 'Choose a JPEG, PNG, or WebP photo.',
     photoOpen: 'The selected photo could not be opened.',
     generate: 'The posts could not be created.',
@@ -95,6 +95,7 @@ const en = {
     audiencePlaceholder: 'E.g.: Developers learning AWS',
     context: 'Context',
     contextPlaceholder: 'Facts, examples, sources, and anything the post must include or leave out.',
+    contextMinimum: (count: number) => `${count} / 200 minimum`,
   },
   publish: {
     where: 'Where will it be published?',
@@ -213,6 +214,10 @@ const en = {
     pdf: 'Download PDF',
   },
   gallery: {
+    eyebrow: 'Result',
+    title: 'Generated images',
+    previous: 'Show previous images',
+    next: 'Show next images',
     composing: 'Composing your pages…',
     empty: 'Your pages will appear here when they are ready.',
     open: (index: number) => `Open post ${index}`,

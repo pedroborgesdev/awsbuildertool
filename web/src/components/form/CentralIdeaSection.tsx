@@ -10,6 +10,7 @@ interface CentralIdeaSectionProps {
 
 export function CentralIdeaSection({ form, onUpdate }: CentralIdeaSectionProps) {
   const { t } = useI18n()
+  const contextLength = form.additionalContext.trim().length
 
   return (
     <div className={panelGridClass}>
@@ -22,8 +23,11 @@ export function CentralIdeaSection({ form, onUpdate }: CentralIdeaSectionProps) 
       <Field label={t.idea.audience}>
         <input className={fieldControlClass} value={form.audience} onChange={(e) => onUpdate('audience', e.target.value)} placeholder={t.idea.audiencePlaceholder} />
       </Field>
-      <Field label={t.idea.context} hint={`${form.additionalContext.trim().length}/8000`}>
-        <textarea className={`${fieldControlClass} min-h-[280px] resize-none`} required minLength={150} maxLength={8000} rows={12} value={form.additionalContext} onChange={(e) => onUpdate('additionalContext', e.target.value)} placeholder={t.idea.contextPlaceholder} />
+      <Field
+        label={t.idea.context}
+        hint={<span className={contextLength >= 200 ? 'font-extrabold text-green' : ''}>{t.idea.contextMinimum(contextLength)}</span>}
+      >
+        <textarea className={`${fieldControlClass} min-h-[280px] resize-none`} required minLength={200} maxLength={8000} rows={12} value={form.additionalContext} onChange={(e) => onUpdate('additionalContext', e.target.value)} placeholder={t.idea.contextPlaceholder} />
       </Field>
     </div>
   )

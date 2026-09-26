@@ -3,7 +3,7 @@ import { fieldLabelClass } from '../../styles'
 
 interface FieldProps {
   label: string
-  hint?: string
+  hint?: ReactNode
   children: ReactNode
 }
 

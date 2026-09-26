@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { isAboutField, readAbout, writeAbout } from './aboutCache'
 import { generateScript, getConfig } from './api'
-import { initialForm } from './constants'
+import { creatorStepIds, initialForm } from './constants'
 import { useI18n } from './i18n/context'
 import { AppShell, SiteHeader } from './components/layout/AppShell'
 import { CreatorPage } from './components/pages/CreatorPage'
@@ -9,6 +9,8 @@ import { LandingPage } from './components/pages/LandingPage'
 import { ResultPage } from './components/pages/ResultPage'
 import { PhotoCropper } from './components/photo/PhotoCropper'
 import type { AppConfig, AppView, GenerateRequest, GenerateResponse } from './types'
+
+const historyViewKey = 'builderToolView'
 
 function canCreatePosts(config: AppConfig | null) {
   return Boolean(config?.designSystemReady && config.rendererReady && (config.tokenConfigured || config.mockMode))
@@ -49,6 +51,34 @@ function App() {
       .finally(() => setConfigLoading(false))
   }, [])
 
+  useEffect(() => {
+    const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {}
+    window.history.replaceState({ ...currentState, [historyViewKey]: 'landing' }, '')
+
+    const restoreView = (event: PopStateEvent) => {
+      const nextView = event.state?.[historyViewKey]
+      setView(nextView === 'create' || nextView === 'result' ? nextView : 'landing')
+    }
+    window.addEventListener('popstate', restoreView)
+    return () => window.removeEventListener('popstate', restoreView)
+  }, [])
+
+  function navigateTo(nextView: AppView, mode: 'push' | 'replace' = 'replace') {
+    const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {}
+    const nextState = { ...currentState, [historyViewKey]: nextView }
+    if (mode === 'push') window.history.pushState(nextState, '')
+    else window.history.replaceState(nextState, '')
+    setView(nextView)
+  }
+
+  function returnHome() {
+    if (window.history.state?.[historyViewKey] !== 'landing') {
+      window.history.back()
+      return
+    }
+    navigateTo('landing')
+  }
+
   function update<K extends keyof GenerateRequest>(key: K, value: GenerateRequest[K]) {
     setForm((current) => {
       const next = { ...current, [key]: value }
@@ -74,7 +104,7 @@ function App() {
   function openCreator() {
     if (!canCreatePosts(config)) return
     setError('')
-    setView('create')
+    navigateTo('create', 'push')
   }
 
   function resetBrief() {
@@ -83,20 +113,20 @@ function App() {
     setArtifactIsStale(false)
     setError('')
     setStep(0)
-    setView('landing')
+    returnHome()
   }
 
   async function generatePosts(returnToCreatorOnError: boolean) {
     setBusy(true)
     setError('')
-    setView('result')
+    navigateTo('result')
     try {
       const value = await generateScript(form)
       setResult(value)
       setArtifactIsStale(false)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t.errors.generate)
-      if (returnToCreatorOnError) setView('create')
+      if (returnToCreatorOnError) navigateTo('create')
     } finally {
       setBusy(false)
     }
@@ -116,9 +146,9 @@ function App() {
         canCreate={ready}
         configLoading={configLoading}
         hasResult={Boolean(result)}
-        onHome={() => setView('landing')}
+        onHome={returnHome}
         onStart={openCreator}
-        onResult={() => setView('result')}
+        onResult={() => navigateTo('result')}
       />
       {view === 'landing' && <LandingPage config={config} configLoading={configLoading} canCreate={ready} error={error} onStart={openCreator} />}
       {view === 'create' && (
@@ -131,7 +161,7 @@ function App() {
           onStepChange={setStep}
           onUpdate={update}
           onImportPhoto={importPhoto}
-          onExit={() => setView('landing')}
+          onExit={returnHome}
           onSubmit={handleSubmit}
         />
       )}
@@ -141,6 +171,7 @@ function App() {
           stale={artifactIsStale}
           loading={busy}
           error={error}
+          onEdit={() => { setStep(creatorStepIds.length - 1); navigateTo('create') }}
           onRetry={() => { void generatePosts(false) }}
           onReset={resetBrief}
         />
