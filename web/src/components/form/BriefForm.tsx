@@ -60,7 +60,7 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
 
   return (
     <form onSubmit={submit} className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto]" aria-busy={busy}>
-      <div data-creator-scroll className={`min-h-0 overflow-x-hidden overflow-y-scroll overscroll-y-contain pr-3 pb-5 ${scrollbarClass}`}>
+      <div data-creator-scroll className={`min-h-0 overflow-x-hidden overflow-y-scroll overscroll-y-contain px-5 py-5 min-[980px]:px-8 ${scrollbarClass}`}>
         <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
           {step === 0 && (
             <>
@@ -76,7 +76,7 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
         {issueKey && <p className="mt-[22px] border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="alert">{t.errors[issueKey]}</p>}
         {error && <div className="mt-[22px]"><ErrorAlert>{error}</ErrorAlert></div>}
       </div>
-      <div className="flex shrink-0 gap-2.5 border-t border-grid bg-ink py-3 pb-[calc(12px+env(safe-area-inset-bottom))] [&>button]:flex-1 min-[980px]:justify-between min-[980px]:pb-3 min-[980px]:[&>button]:min-w-[148px] min-[980px]:[&>button]:flex-none">
+      <div className="flex shrink-0 gap-2.5 border-t border-grid bg-ink px-5 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] min-[980px]:justify-between min-[980px]:px-8 min-[980px]:pb-3 [&>button]:flex-1 min-[980px]:[&>button]:min-w-[148px] min-[980px]:[&>button]:flex-none">
         <Button variant="secondary" onClick={() => { setAttempted(false); step === 0 ? onExit() : onStepChange(step - 1) }} disabled={busy}>
           {step === 0 ? t.nav.home : t.nav.previous}
         </Button>
