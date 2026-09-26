@@ -8,6 +8,8 @@ import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
 import type { AppConfig } from '../../types'
 
+const visitorCountEnabled = false
+
 interface LandingPageProps {
   config: AppConfig | null
   configLoading: boolean
@@ -57,14 +59,16 @@ export function LandingPage({ config, configLoading, canCreate, error, onStart }
                   <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.images)}</strong>
                   <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.imagesCreated}</span>
                 </p>
-                <p className={statCardClass}>
-                  <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.visitors)}</strong>
-                  <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.uniqueVisitors}</span>
-                </p>
+                {visitorCountEnabled && (
+                  <p className={statCardClass}>
+                    <strong className="text-[28px] leading-none tracking-[-.03em] text-white max-[520px]:text-xl">{number.format(stats.visitors)}</strong>
+                    <span className="text-xs font-bold tracking-[.06em] text-[#9aa7b2] uppercase max-[520px]:text-[10px] max-[520px]:leading-tight max-[520px]:tracking-[.04em]">{t.landing.uniqueVisitors}</span>
+                  </p>
+                )}
               </>
             ) : (
               <>
-                {[0, 1].map((item) => (
+                {Array.from({ length: visitorCountEnabled ? 2 : 1 }, (_, item) => (
                   <div className={statCardClass} aria-hidden="true" key={item}>
                     <span className={`${skeletonClass} block h-7 w-20`} />
                     <span className={`${skeletonClass} block h-3 w-28 max-w-full`} />

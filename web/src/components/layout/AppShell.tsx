@@ -34,7 +34,6 @@ export function SiteHeader({
   onHome,
   onStart,
   onResult,
-  onEdit,
 }: {
   view: AppView
   canCreate: boolean
@@ -43,7 +42,6 @@ export function SiteHeader({
   onHome: () => void
   onStart: () => void
   onResult: () => void
-  onEdit: () => void
 }) {
   const { t } = useI18n()
 
@@ -78,9 +76,6 @@ export function SiteHeader({
           )}
           {view === 'create' && hasResult && (
             <Button variant="secondary" className="min-h-10" onClick={onResult}>{t.header.viewPosts}</Button>
-          )}
-          {view === 'result' && (
-            <Button variant="secondary" className="min-h-10" onClick={onEdit}>{t.header.edit}</Button>
           )}
         </div>
       </div>

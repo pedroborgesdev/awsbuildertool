@@ -23,7 +23,7 @@ export function CentralIdeaSection({ form, onUpdate }: CentralIdeaSectionProps) 
         <input className={fieldControlClass} value={form.audience} onChange={(e) => onUpdate('audience', e.target.value)} placeholder={t.idea.audiencePlaceholder} />
       </Field>
       <Field label={t.idea.context} hint={`${form.additionalContext.trim().length}/8000`}>
-        <textarea className={`${fieldControlClass} min-h-[280px] resize-y`} required minLength={400} maxLength={8000} rows={12} value={form.additionalContext} onChange={(e) => onUpdate('additionalContext', e.target.value)} placeholder={t.idea.contextPlaceholder} />
+        <textarea className={`${fieldControlClass} min-h-[280px] resize-none`} required minLength={150} maxLength={8000} rows={12} value={form.additionalContext} onChange={(e) => onUpdate('additionalContext', e.target.value)} placeholder={t.idea.contextPlaceholder} />
       </Field>
     </div>
   )

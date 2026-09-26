@@ -142,8 +142,8 @@ func (r GenerateRequest) Validate() error {
 	if !ContentLevels[r.ContentLevel] {
 		return fmt.Errorf("content level must be essential, balanced, or deep")
 	}
-	if length := len([]rune(r.AdditionalContext)); length < 400 || length > 8000 {
-		return fmt.Errorf("context must be between 400 and 8000 characters")
+	if length := len([]rune(r.AdditionalContext)); length < 150 || length > 8000 {
+		return fmt.Errorf("context must be between 150 and 8000 characters")
 	}
 	if len([]rune(r.CTA)) > 280 {
 		return fmt.Errorf("CTA must be at most 280 characters")

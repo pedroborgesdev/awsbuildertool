@@ -61,15 +61,15 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
     <form onSubmit={submit} className="grid gap-[22px]" aria-busy={busy}>
       <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
         {step === 0 && <CentralIdeaSection form={form} onUpdate={onUpdate} />}
-        {step === 1 && <FormatSection form={form} onUpdate={onUpdate} />}
-        {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
-        {step === 3 && <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />}
-        {step === 4 && (
+        {step === 1 && (
           <>
+            <FormatSection form={form} onUpdate={onUpdate} />
             <ActionSection form={form} onUpdate={onUpdate} />
-            <ReviewStep form={form} onEdit={(next) => { setAttempted(false); onStepChange(next) }} />
           </>
         )}
+        {step === 2 && <LookSection form={form} onUpdate={onUpdate} />}
+        {step === 3 && <AboutSection form={form} onUpdate={onUpdate} onImportPhoto={onImportPhoto} />}
+        {step === 4 && <ReviewStep form={form} onEdit={(next) => { setAttempted(false); onStepChange(next) }} />}
       </fieldset>
       {issueKey && <p className="border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="alert">{t.errors[issueKey]}</p>}
       {error && <ErrorAlert>{error}</ErrorAlert>}

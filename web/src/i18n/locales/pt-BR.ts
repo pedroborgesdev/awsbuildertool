@@ -62,7 +62,7 @@ const ptBR: Messages = {
     publish: {
       label: 'Publicar',
       title: 'Escolha onde ele vive.',
-      description: 'Escolha o canal, quantas páginas fazer e o quanto dizer.',
+      description: 'Escolha o canal, quantas páginas fazer e como chamar a pessoa para agir.',
     },
     look: {
       label: 'Visual',
@@ -77,13 +77,13 @@ const ptBR: Messages = {
     finish: {
       label: 'Final',
       title: 'Revise e crie.',
-      description: 'Adicione um chamado para ação e confira o briefing antes de gerar as páginas.',
+      description: 'Confira o briefing antes de gerar as páginas.',
     },
   },
   errors: {
     topic: 'O tema precisa ter pelo menos 3 caracteres.',
     goal: 'Diga o que o post deve alcançar.',
-    context: 'O contexto precisa ter pelo menos 400 caracteres.',
+    context: 'O contexto precisa ter pelo menos 150 caracteres.',
     photoType: 'Escolha uma foto JPEG, PNG ou WebP.',
     photoOpen: 'Não foi possível abrir a foto selecionada.',
     generate: 'Não foi possível criar os posts.',
@@ -206,6 +206,7 @@ const ptBR: Messages = {
     creatingText: 'Isso costuma levar um momento. As páginas aparecem aqui.',
     readyText: (count: number) => count === 1 ? '1 página está pronta para abrir ou baixar.' : `${count} páginas estão prontas para abrir ou baixar.`,
     edit: 'Editar briefing',
+    retry: 'Tentar novamente',
     another: 'Criar outro',
     stale: 'Estas páginas foram feitas antes das últimas mudanças. Crie de novo para atualizar o conjunto.',
     files: 'Arquivos',

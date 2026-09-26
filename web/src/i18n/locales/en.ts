@@ -60,7 +60,7 @@ const en = {
     publish: {
       label: 'Publish',
       title: 'Choose where it belongs.',
-      description: 'Pick a channel, how many pages to make, and how much to say.',
+      description: 'Pick a channel, how many pages to make, and how to invite people to act.',
     },
     look: {
       label: 'Look',
@@ -75,13 +75,13 @@ const en = {
     finish: {
       label: 'Finish',
       title: 'Review and create.',
-      description: 'Add a call to action, then check the brief before the pages are made.',
+      description: 'Check the brief before the pages are made.',
     },
   },
   errors: {
     topic: 'Give the post a topic of at least 3 characters.',
     goal: 'Say what the post should achieve.',
-    context: 'Context needs at least 400 characters.',
+    context: 'Context needs at least 150 characters.',
     photoType: 'Choose a JPEG, PNG, or WebP photo.',
     photoOpen: 'The selected photo could not be opened.',
     generate: 'The posts could not be created.',
@@ -204,6 +204,7 @@ const en = {
     creatingText: 'This usually takes a moment. The pages will appear here.',
     readyText: (count: number) => count === 1 ? '1 page is ready to open or download.' : `${count} pages are ready to open or download.`,
     edit: 'Edit brief',
+    retry: 'Try again',
     another: 'Create another',
     stale: 'These pages were made before your latest changes. Create them again to refresh the set.',
     files: 'Files',

@@ -1,5 +1,6 @@
 import { useI18n } from '../../i18n/context'
 import { eyebrowClass, scrollbarClass } from '../../styles'
+import { ErrorAlert } from '../ui/Alert'
 import { DownloadFile } from '../ui/DownloadFile'
 import { Button } from '../ui/Button'
 import { Gallery } from '../gallery/Gallery'
@@ -10,11 +11,12 @@ interface ResultPageProps {
   result: GenerateResponse | null
   stale: boolean
   loading: boolean
-  onEdit: () => void
+  error: string
+  onRetry: () => void
   onReset: () => void
 }
 
-export function ResultPage({ result, stale, loading, onEdit, onReset }: ResultPageProps) {
+export function ResultPage({ result, stale, loading, error, onRetry, onReset }: ResultPageProps) {
   const { t } = useI18n()
   const images = result?.files.filter((file) => file.kind === 'page') ?? []
   const documents = result?.files.filter((file) => file.kind === 'document') ?? []
@@ -31,10 +33,12 @@ export function ResultPage({ result, stale, loading, onEdit, onReset }: ResultPa
             <p className="mt-3 max-w-[38rem] leading-relaxed text-muted-light">{loading ? t.result.creatingText : t.result.readyText(images.length)}</p>
           </div>
           <div className="grid gap-4 min-[720px]:grid-flow-col min-[720px]:justify-end">
-            <Button variant="secondary" onClick={onEdit} disabled={loading}>{t.result.edit}</Button>
+            {result && <Button variant="secondary" onClick={onRetry} disabled={loading}>{t.result.retry}</Button>}
             <Button onClick={onReset} disabled={loading}>{t.result.another}</Button>
           </div>
         </header>
+
+        {error && !loading && <ErrorAlert>{error}</ErrorAlert>}
 
         {stale && !loading && (
           <p className="border-l-4 border-orange bg-orange/10 px-3.5 py-3 text-sm text-orange" role="status">{t.result.stale}</p>

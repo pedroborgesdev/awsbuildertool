@@ -107,3 +107,16 @@ func TestValidateAcceptsKnownFormat(t *testing.T) {
 		t.Fatalf("valid request rejected: %v", err)
 	}
 }
+
+func TestValidateContextMinimum(t *testing.T) {
+	r := validRequest()
+	r.Normalize("modelo/padrao")
+	r.AdditionalContext = strings.Repeat("a", 149)
+	if err := r.Validate(); err == nil {
+		t.Fatal("expected an error for context shorter than 150 characters")
+	}
+	r.AdditionalContext = strings.Repeat("a", 150)
+	if err := r.Validate(); err != nil {
+		t.Fatalf("150-character context rejected: %v", err)
+	}
+}

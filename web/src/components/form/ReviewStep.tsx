@@ -30,7 +30,7 @@ export function ReviewStep({ form, onEdit }: { form: GenerateRequest; onEdit: (s
             <button
               className="min-h-11 cursor-pointer border border-border bg-transparent px-3 text-xs font-extrabold text-white hover:border-white focus-visible:border-white focus-visible:outline-none"
               type="button"
-              onClick={() => onEdit(index)}
+              onClick={() => onEdit(index === 4 ? 1 : index)}
             >
               {t.review.edit}
             </button>

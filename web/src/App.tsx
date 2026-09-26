@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { isAboutField, readAbout, writeAbout } from './aboutCache'
 import { generateScript, getConfig } from './api'
-import { creatorStepIds, initialForm } from './constants'
+import { initialForm } from './constants'
 import { useI18n } from './i18n/context'
 import { AppShell, SiteHeader } from './components/layout/AppShell'
 import { CreatorPage } from './components/pages/CreatorPage'
@@ -86,8 +86,7 @@ function App() {
     setView('landing')
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
+  async function generatePosts(returnToCreatorOnError: boolean) {
     setBusy(true)
     setError('')
     setView('result')
@@ -97,10 +96,15 @@ function App() {
       setArtifactIsStale(false)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t.errors.generate)
-      setView('create')
+      if (returnToCreatorOnError) setView('create')
     } finally {
       setBusy(false)
     }
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    void generatePosts(true)
   }
 
   const ready = canCreatePosts(config)
@@ -115,7 +119,6 @@ function App() {
         onHome={() => setView('landing')}
         onStart={openCreator}
         onResult={() => setView('result')}
-        onEdit={() => { setStep(creatorStepIds.length - 1); setView('create') }}
       />
       {view === 'landing' && <LandingPage config={config} configLoading={configLoading} canCreate={ready} error={error} onStart={openCreator} />}
       {view === 'create' && (
@@ -137,7 +140,8 @@ function App() {
           result={result}
           stale={artifactIsStale}
           loading={busy}
-          onEdit={() => { setStep(creatorStepIds.length - 1); setView('create') }}
+          error={error}
+          onRetry={() => { void generatePosts(false) }}
           onReset={resetBrief}
         />
       )}
