@@ -17,7 +17,7 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
 
   return (
     <div className={panelGridClass}>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${fieldLabelClass} mb-3`}>{t.look.color}</legend>
         <div className="grid grid-cols-2 gap-2 min-[720px]:grid-cols-3" role="radiogroup" aria-label={t.look.colorLabel}>
           {colorThemes.map((theme) => (
@@ -32,7 +32,7 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
         </div>
         <p className="mt-3 text-sm leading-relaxed text-muted-light">{t.look.colorNote}</p>
       </fieldset>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${fieldLabelClass} mb-3`}>{t.look.language}</legend>
         <div className="grid grid-cols-2 gap-2 min-[720px]:grid-cols-3 [&_button]:min-h-13" role="radiogroup" aria-label={t.look.languageLabel}>
           {languages.map((language) => (
@@ -42,7 +42,7 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
           ))}
         </div>
       </fieldset>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${fieldLabelClass} mb-3`}>{t.look.appearance}</legend>
         <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t.look.appearanceLabel}>
           {pageThemes.map((theme) => (
@@ -57,7 +57,7 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
           ))}
         </div>
       </fieldset>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${fieldLabelClass} mb-3`}>{t.look.grid}</legend>
         <Toggle checked={form.showGrid} onChange={(value) => onUpdate('showGrid', value)} label={t.look.gridToggle} />
         <p className="mt-3 text-sm leading-relaxed text-muted-light">{t.look.gridNote}</p>

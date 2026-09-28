@@ -79,7 +79,7 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
   }
 
   return (
-    <form onSubmit={submit} className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto]" aria-busy={busy}>
+    <form onSubmit={submit} className="grid h-full min-h-0 min-w-0 overflow-hidden grid-rows-[minmax(0,1fr)_auto]" aria-busy={busy}>
       {popupMessage && (
         <div
           className="fixed top-[calc(84px+env(safe-area-inset-top))] left-1/2 z-50 grid w-[min(540px,calc(100vw-24px))] -translate-x-1/2 grid-cols-[minmax(0,1fr)_44px] border border-orange border-l-4 bg-panel text-orange shadow-[7px_7px_0_#10161e]"
@@ -97,8 +97,8 @@ export function BriefForm({ form, config, step, busy, error, onUpdate, onImportP
           <span className="col-span-full block h-1 origin-left bg-orange [animation:popup-countdown_8s_linear_forwards]" aria-hidden="true" />
         </div>
       )}
-      <div data-creator-scroll className={`min-h-0 overflow-x-hidden overflow-y-scroll overscroll-y-contain px-5 py-5 min-[980px]:px-8 ${scrollbarClass}`}>
-        <fieldset disabled={busy} className="m-0 grid gap-[22px] border-0 p-0">
+      <div data-creator-scroll className={`min-h-0 min-w-0 overflow-x-hidden overflow-y-scroll overscroll-y-contain px-5 py-5 min-[980px]:px-8 ${scrollbarClass}`}>
+        <fieldset disabled={busy} className="m-0 grid min-w-0 gap-[22px] border-0 p-0">
           {step === 0 && (
             <>
               <CentralIdeaSection form={form} onUpdate={onUpdate} />

@@ -17,7 +17,7 @@ export function AboutSection({ form, onUpdate, onImportPhoto }: AboutSectionProp
   return (
     <div className={panelGridClass}>
       <Toggle checked={form.useAboutFooter} onChange={(value) => onUpdate('useAboutFooter', value)} label={t.about.toggle} />
-      <fieldset disabled={!form.useAboutFooter} className={`transition-opacity duration-150 ${form.useAboutFooter ? '' : 'opacity-[.38]'}`}>
+      <fieldset disabled={!form.useAboutFooter} className={`min-w-0 transition-opacity duration-150 ${form.useAboutFooter ? '' : 'opacity-[.38]'}`}>
         <div className="grid gap-3 min-[720px]:grid-cols-2">
           <Field label={t.about.name} hint={`${form.aboutName.length}/80`}>
             <input className={fieldControlClass} maxLength={80} value={form.aboutName} onChange={(e) => onUpdate('aboutName', e.target.value)} placeholder={t.about.namePlaceholder} />

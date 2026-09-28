@@ -16,7 +16,7 @@ export function FormatSection({ form, onUpdate }: FormatSectionProps) {
 
   return (
     <div className={panelGridClass}>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${fieldLabelClass} mb-3`}>{t.publish.where}</legend>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t.publish.whereLabel}>
           {formatChoices.map((choice) => (
@@ -29,7 +29,7 @@ export function FormatSection({ form, onUpdate }: FormatSectionProps) {
           ))}
         </div>
       </fieldset>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className={`${fieldLabelClass} mb-3`}>{t.publish.depth}</legend>
         <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t.publish.depthLabel}>
           {contentLevels.map((level) => (

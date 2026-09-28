@@ -25,7 +25,7 @@ export const choiceCardClass = [
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green',
 ].join(' ')
 
-export const panelGridClass = 'grid gap-[22px]'
+export const panelGridClass = 'grid min-w-0 max-w-full gap-[22px]'
 
 export const gridBackgroundClass = [
   'bg-ink',

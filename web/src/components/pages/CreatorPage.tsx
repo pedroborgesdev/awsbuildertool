@@ -46,8 +46,8 @@ export function CreatorPage({
   }, [step])
 
   return (
-    <div className="isolate h-full min-h-0 overflow-hidden border-x border-grid bg-ink min-[1200px]:mx-[96px] min-[1600px]:mx-[112px]">
-      <div className="grid h-full min-h-0 w-full grid-rows-[auto_minmax(0,1fr)] bg-ink">
+    <div className="isolate h-full min-h-0 min-w-0 overflow-hidden border-x border-grid bg-ink min-[1200px]:mx-[96px] min-[1600px]:mx-[112px]">
+      <div className="grid h-full min-h-0 min-w-0 w-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-ink">
         <nav className="border-b border-grid px-5 py-3 min-[980px]:px-8" aria-label={t.creator.progressLabel}>
           <p className="text-[10px] font-extrabold tracking-[.08em] text-muted-light uppercase">{t.creator.progress(step + 1, creatorStepIds.length)}</p>
           <ol className="mt-2 grid list-none grid-cols-5 gap-2 p-0">
@@ -77,7 +77,7 @@ export function CreatorPage({
           </ol>
         </nav>
 
-        <section className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)]" aria-labelledby="creator-title">
+        <section className="grid min-h-0 min-w-0 overflow-hidden grid-rows-[auto_minmax(0,1fr)]" aria-labelledby="creator-title">
           <header className="border-b border-grid px-5 py-5 min-[980px]:px-8">
             <p className={`${eyebrowClass} text-pink`}>{current.label}</p>
             <h1 className="mt-2 max-w-[16ch] text-[clamp(1.8rem,4vw,2.8rem)] leading-[.98] outline-none" id="creator-title" tabIndex={-1}>{current.title}</h1>
