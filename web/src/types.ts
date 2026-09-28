@@ -105,12 +105,18 @@ export interface ApiErrorShape {
 }
 
 export type PageRole = 'cover' | 'list' | 'flow' | 'comparison' | 'manifesto' | 'cta' | 'diagram' | 'chart' | 'timeline' | 'stats'
+export type TextHighlightTarget = 'title' | 'body' | `items.${number}.title` | `items.${number}.text`
+export interface TextHighlight {
+  target: TextHighlightTarget
+  text: string
+}
 export interface PageContent {
   role: PageRole
   eyebrow: string
   title: string
   body: string
   items: Array<{ title: string; text: string; iconIntent: string; value?: number }>
+  highlights: TextHighlight[]
   cta: string
   iconIntent: string
   imageId: string

@@ -43,6 +43,40 @@ func TestEditorialContract(t *testing.T) {
 	}
 }
 
+func TestTextHighlightsReferenceExactEditorialExcerpts(t *testing.T) {
+	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 1, ContentLevel: "balanced", AdditionalContext: strings.Repeat("a", 400)}
+	valid := func() CampaignDraft {
+		return CampaignDraft{Version: 1, Brief: brief, Pages: []PageContent{{
+			Role: "cover", Title: "Created by Builder Tool", Body: "Turn ideas into useful posts.", IconIntent: "key",
+			Highlights: []TextHighlight{{Target: "title", Text: "Builder Tool"}, {Target: "body", Text: "useful posts"}},
+		}}}
+	}
+	if err := valid().Validate(); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name   string
+		change func(*CampaignDraft)
+	}{
+		{"unknown target", func(d *CampaignDraft) { d.Pages[0].Highlights[0].Target = "eyebrow" }},
+		{"missing excerpt", func(d *CampaignDraft) { d.Pages[0].Highlights[0].Text = "Another product" }},
+		{"duplicate", func(d *CampaignDraft) {
+			d.Pages[0].Highlights = append(d.Pages[0].Highlights, d.Pages[0].Highlights[0])
+		}},
+		{"too many", func(d *CampaignDraft) {
+			d.Pages[0].Highlights = append(d.Pages[0].Highlights, TextHighlight{Target: "title", Text: "Created"}, TextHighlight{Target: "body", Text: "ideas"})
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			draft := valid()
+			tc.change(&draft)
+			if draft.Validate() == nil {
+				t.Fatal("invalid highlight accepted")
+			}
+		})
+	}
+}
+
 func TestChartRequiresPercentagesThatSumToOneHundred(t *testing.T) {
 	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 1, ContentLevel: "balanced", AdditionalContext: strings.Repeat("a", 400)}
 	draft := CampaignDraft{Version: 1, Brief: brief, Pages: []PageContent{{

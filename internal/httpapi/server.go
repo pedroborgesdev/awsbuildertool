@@ -521,6 +521,7 @@ func (s *Server) renderContent(w http.ResponseWriter, r *http.Request) {
 	}
 	draft.Brief.Normalize(s.config.HFModel)
 	draft.Normalize()
+	draft.ReconcileHighlights()
 	s.renderDraft(w, r, draft, "")
 }
 func (s *Server) renderDraft(w http.ResponseWriter, r *http.Request, draft domain.CampaignDraft, built string) {

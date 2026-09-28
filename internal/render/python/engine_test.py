@@ -362,6 +362,17 @@ class EngineTests(unittest.TestCase):
             reaches_reserved_rows |= any(branch["row"]<3 for branch in branches)
         self.assertTrue(reaches_reserved_rows,"decorative cells should remain free to enter the Story opening")
 
+    def test_text_highlights_use_theme_accent_without_changing_copy(self):
+        page=Page(1080,1080,True,self.design,1,"green")
+        panel=page.panel("copy",(0,0,720,240))
+        page.text("copy-text","Created by Builder Tool",(24,24,696,216),"copy",42,30,True,
+                  highlights=["Builder Tool"])
+        record=next(text for text in page.texts if text["name"]=="copy-text")
+        self.assertEqual(record["text"],"Created by Builder Tool")
+        self.assertEqual(record["highlights"],[{"text":"Builder Tool","color":COLORS["green"]}])
+        accent=sum(1 for pixel in page.image.crop(panel).getdata() if pixel==tuple(bytes.fromhex(COLORS["green"][1:])))
+        self.assertGreater(accent,0)
+
     def test_unicode_normalization_fallback_and_long_word_wrap(self):
         text=normalize("Make sure: action, cafe, join, and step-by-step")
         self.assertNotIn("\u2011",text)

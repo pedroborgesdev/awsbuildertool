@@ -58,10 +58,11 @@ func MockDraft(brief domain.GenerateRequest) domain.CampaignDraft {
 	icons := []string{"brackets", "connector", "lightning", "key", "community", "trophy"}
 	pages := make([]domain.PageContent, brief.PostCount)
 	for i := range pages {
-		p := domain.PageContent{Role: "list", Eyebrow: "Demo preview", Title: "Understand the concept", Body: "Define a small goal and validate each step with a practical example.", Items: []domain.ContentItem{}, IconIntent: icons[i%len(icons)]}
+		p := domain.PageContent{Role: "list", Eyebrow: "Demo preview", Title: "Understand the concept", Body: "Define a small goal and validate each step with a practical example.", Items: []domain.ContentItem{}, Highlights: []domain.TextHighlight{}, IconIntent: icons[i%len(icons)]}
 		if i == 0 {
 			p.Role = "cover"
 			p.Title = "From concept to practice"
+			p.Highlights = []domain.TextHighlight{{Target: "title", Text: "practice"}}
 		} else if i == len(pages)-1 {
 			p.Role = "cta"
 			p.Title = "Your next step"

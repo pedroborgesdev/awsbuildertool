@@ -16,7 +16,7 @@ func TestEditorialPromptIsSmall(t *testing.T) {
 	if strings.Contains(value, "word limit") {
 		t.Fatal("prompt must not impose a per-page word limit")
 	}
-	for _, want := range []string{"exactly 5 pages", "Save this post", `"pages"`, `"theme": "CI/CD"`, "cloud", "git-branch", "hashtag", `always write its complete name exactly as "AWS Builder Center"`} {
+	for _, want := range []string{"exactly 5 pages", "Save this post", `"pages"`, `"theme": "CI/CD"`, "cloud", "git-branch", "hashtag", `always write its complete name exactly as "AWS Builder Center"`, `"highlights"`, "exact excerpt"} {
 		if !strings.Contains(value, want) {
 			t.Errorf("missing %q", want)
 		}

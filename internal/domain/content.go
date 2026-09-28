@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -16,15 +17,23 @@ type CampaignDraft struct {
 }
 
 type PageContent struct {
-	Role       string        `json:"role"`
-	Eyebrow    string        `json:"eyebrow"`
-	Title      string        `json:"title"`
-	Body       string        `json:"body"`
-	Items      []ContentItem `json:"items"`
-	CTA        string        `json:"cta"`
-	IconIntent string        `json:"iconIntent"`
-	ImageID    string        `json:"imageId"`
-	ImageRole  string        `json:"imageRole"`
+	Role       string          `json:"role"`
+	Eyebrow    string          `json:"eyebrow"`
+	Title      string          `json:"title"`
+	Body       string          `json:"body"`
+	Items      []ContentItem   `json:"items"`
+	Highlights []TextHighlight `json:"highlights"`
+	CTA        string          `json:"cta"`
+	IconIntent string          `json:"iconIntent"`
+	ImageID    string          `json:"imageId"`
+	ImageRole  string          `json:"imageRole"`
+}
+
+// TextHighlight keeps emphasis separate from the copy. Target is a stable
+// editorial path such as "title", "body", or "items.0.text".
+type TextHighlight struct {
+	Target string `json:"target"`
+	Text   string `json:"text"`
 }
 
 type ContentItem struct {
@@ -70,6 +79,13 @@ func (d *CampaignDraft) Normalize() {
 		p.ImageRole = strings.ToLower(strings.TrimSpace(p.ImageRole))
 		if p.Items == nil {
 			p.Items = []ContentItem{}
+		}
+		if p.Highlights == nil {
+			p.Highlights = []TextHighlight{}
+		}
+		for j := range p.Highlights {
+			p.Highlights[j].Target = strings.TrimSpace(p.Highlights[j].Target)
+			p.Highlights[j].Text = NormalizeText(p.Highlights[j].Text)
 		}
 		for j := range p.Items {
 			p.Items[j].Title = NormalizeText(p.Items[j].Title)
@@ -224,6 +240,24 @@ func (d CampaignDraft) Validate() error {
 				return fmt.Errorf("page %d: invalid item icon", i+1)
 			}
 		}
+		if len(p.Highlights) > 3 {
+			return fmt.Errorf("page %d: use at most three text highlights", i+1)
+		}
+		seenHighlights := map[string]bool{}
+		for _, highlight := range p.Highlights {
+			value, ok := highlightTargetValue(p, highlight.Target)
+			if !ok {
+				return fmt.Errorf("page %d: invalid highlight target %q", i+1, highlight.Target)
+			}
+			if highlight.Text == "" || !strings.Contains(value, highlight.Text) {
+				return fmt.Errorf("page %d: highlight text must be an exact excerpt of %s", i+1, highlight.Target)
+			}
+			key := highlight.Target + "\x00" + highlight.Text
+			if seenHighlights[key] {
+				return fmt.Errorf("page %d: duplicate text highlight", i+1)
+			}
+			seenHighlights[key] = true
+		}
 		if ((i == 0 && d.Brief.FirstPageCTA) || (i == len(d.Pages)-1 && d.Brief.LastPageCTA)) && p.CTA == "" {
 			return fmt.Errorf("page %d: CTA is required", i+1)
 		}
@@ -239,6 +273,43 @@ func (d CampaignDraft) Validate() error {
 		return fmt.Errorf("every uploaded image must be assigned exactly once; missing: %s", strings.Join(missing, ", "))
 	}
 	return nil
+}
+
+// ReconcileHighlights removes emphasis whose source text was edited. It is
+// intended for user-reviewed drafts; model responses still use strict validation.
+func (d *CampaignDraft) ReconcileHighlights() {
+	for pageIndex := range d.Pages {
+		page := &d.Pages[pageIndex]
+		valid := make([]TextHighlight, 0, len(page.Highlights))
+		for _, highlight := range page.Highlights {
+			value, ok := highlightTargetValue(*page, highlight.Target)
+			if ok && highlight.Text != "" && strings.Contains(value, highlight.Text) {
+				valid = append(valid, highlight)
+			}
+		}
+		page.Highlights = valid
+	}
+}
+
+func highlightTargetValue(page PageContent, target string) (string, bool) {
+	if target == "title" {
+		return page.Title, true
+	}
+	if target == "body" {
+		return page.Body, true
+	}
+	parts := strings.Split(target, ".")
+	if len(parts) != 3 || parts[0] != "items" || (parts[2] != "title" && parts[2] != "text") {
+		return "", false
+	}
+	index, err := strconv.Atoi(parts[1])
+	if err != nil || index < 0 || index >= len(page.Items) {
+		return "", false
+	}
+	if parts[2] == "title" {
+		return page.Items[index].Title, true
+	}
+	return page.Items[index].Text, true
 }
 
 type ContentResponse struct {

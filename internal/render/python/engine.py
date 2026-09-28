@@ -18,7 +18,7 @@ import unicodedata
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
 
-VERSION = "5.6.0"
+VERSION = "5.7.0"
 FORMATS = {
     "instagram-portrait": (1080, 1350), "instagram-square": (1080, 1080),
     "instagram-story": (1080, 1920), "linkedin-portrait": (1080, 1350),
@@ -48,6 +48,29 @@ def normalize(value):
     table = {0x2011: "-", 0x2010: "-", 0x2013: "-", 0x2014: "-", 0x00A0: " ",
              0x202F: " ", 0x2018: "'", 0x2019: "'", 0x201C: '"', 0x201D: '"', 0x2026: "..."}
     return unicodedata.normalize("NFC", value.translate(table)).strip()
+
+
+def highlights_for(content, target):
+    """Return clean excerpts for one editorial field without mixing markup into copy."""
+    return [normalize(entry.get("text", "")) for entry in content.get("highlights", [])
+            if entry.get("target") == target and normalize(entry.get("text", ""))]
+
+
+def item_highlights(content, entry, *fields):
+    return [excerpt for field in fields
+            for excerpt in highlights_for(content,f"items.{entry['index']}.{field}")]
+
+
+def highlight_matches(value, excerpts):
+    """Locate exact excerpts while allowing the renderer to replace spaces with line breaks."""
+    matches=[]
+    for excerpt in excerpts:
+        parts=excerpt.split()
+        if not parts:
+            continue
+        pattern=r"\s+".join(re.escape(part) for part in parts)
+        matches.extend((match.start(),match.end(),excerpt) for match in re.finditer(pattern,value))
+    return matches
 
 
 @lru_cache(maxsize=16)
@@ -241,7 +264,7 @@ class Page:
             self.draw.rectangle((left,top,box[2]-1,box[3]-1),fill=fill or self.bg)
         return box
 
-    def text(self, name, value, box, parent, preferred=32, minimum=22, bold=False, color=None, align="left", valign="top"):
+    def text(self, name, value, box, parent, preferred=32, minimum=22, bold=False, color=None, align="left", valign="top", highlights=None):
         value = normalize(value)
         if not value: return
         box = self.reserve(name, box, parent, "text")
@@ -259,10 +282,35 @@ class Page:
                 if valign == "center":
                     y = box[1] + (box[3]-box[1]-bh)/2 - bounds[1]
                 self.draw.multiline_text((x, y), txt, font=font, spacing=spacing, fill=color or self.fg, align=align)
+                applied=[]
+                matches=highlight_matches(txt, highlights or [])
+                if matches:
+                    lines=txt.split("\n")
+                    widths=[font.getlength(line) for line in lines]
+                    max_width=max(widths,default=0)
+                    line_spacing=font.getbbox("A")[3]+spacing
+                    offsets=[]; cursor=0
+                    for line in lines:
+                        offsets.append(cursor)
+                        cursor+=len(line)+1
+                    for match_start,match_end,excerpt in matches:
+                        for line_index,line in enumerate(lines):
+                            line_start=offsets[line_index]; line_end=line_start+len(line)
+                            segment_start=max(match_start,line_start); segment_end=min(match_end,line_end)
+                            if segment_start>=segment_end:
+                                continue
+                            local_start=segment_start-line_start; local_end=segment_end-line_start
+                            line_x=x
+                            if align=="center": line_x+=(max_width-widths[line_index])/2
+                            elif align=="right": line_x+=max_width-widths[line_index]
+                            self.draw.text((line_x+font.getlength(line[:local_start]),y+line_index*line_spacing),
+                                           line[local_start:local_end],font=font,fill=self.accent)
+                        applied.append({"text":excerpt,"color":self.accent})
                 actual = self.draw.multiline_textbbox((x, y), txt, font=font, spacing=spacing, align=align)
                 if actual[0]<box[0]-.01 or actual[1]<box[1]-.01 or actual[2]>box[2]+.01 or actual[3]>box[3]+.01:
                     raise ValueError(f"Page {self.number}: text is outside box {name}")
-                self.texts.append({"name":name,"box":box,"bounds":actual,"size":size,"font":Path(path).name,"text":value,"color":color or self.fg})
+                self.texts.append({"name":name,"box":box,"bounds":actual,"size":size,"font":Path(path).name,
+                                   "text":value,"color":color or self.fg,"highlights":applied})
                 return
         raise ValueError(f"Page {self.number}: text does not fit in {name} at the minimum {low}px font. Shorten the content or choose another page type.")
 
@@ -508,7 +556,7 @@ def block_options(p, content, cols, rows, spec, rng, external_image=None):
         blocks.append({"key":"subtitle","kind":"subtitle","options":options})
 
     item_metas=[]
-    for item in content.get("items",[]):
+    for item_index,item in enumerate(content.get("items",[])):
         if content.get("role")=="list":
             # Lists derive their shared line breaks from the measured common
             # width. Optional editorial breaks would make one row taller and
@@ -518,7 +566,7 @@ def block_options(p, content, cols, rows, spec, rng, external_image=None):
         else:
             item_title=presentation_break(item["title"],rng,False)
             item_text=presentation_break(item.get("text",""),rng,True)
-        item_metas.append({"title":item_title,"text":item_text,"item":item})
+        item_metas.append({"title":item_title,"text":item_text,"item":item,"index":item_index})
 
     if content.get("role") in ("diagram","chart","timeline","stats","comparison","flow") and item_metas:
         role=content["role"]; options=[]; count=len(item_metas)
@@ -756,10 +804,10 @@ def render_item_tile(p, spec, content, key, item_index, meta, box, parent):
     if meta["text"]:
         title_h=p.text_height(meta["title"],tx2-tx1,type_scale["itemTitle"],True)
         split=min(ty2-p.g/5,ty1+title_h+p.g/10)
-        p.text(key+"-title",meta["title"],(tx1,ty1,tx2,split),key,type_scale["itemTitle"],type_scale["itemTitleMin"],True,COLORS[item_color])
-        p.text(key+"-text",meta["text"],(tx1,split+p.g/20,tx2,ty2),key,type_scale["itemText"],type_scale["itemTextMin"])
+        p.text(key+"-title",meta["title"],(tx1,ty1,tx2,split),key,type_scale["itemTitle"],type_scale["itemTitleMin"],True,COLORS[item_color],highlights=highlights_for(content,f"items.{item_index}.title"))
+        p.text(key+"-text",meta["text"],(tx1,split+p.g/20,tx2,ty2),key,type_scale["itemText"],type_scale["itemTextMin"],highlights=highlights_for(content,f"items.{item_index}.text"))
     else:
-        p.text(key+"-title",meta["title"],(tx1,ty1,tx2,ty2),key,type_scale["itemTitle"],type_scale["itemTitleMin"],True,COLORS[item_color])
+        p.text(key+"-title",meta["title"],(tx1,ty1,tx2,ty2),key,type_scale["itemTitle"],type_scale["itemTitleMin"],True,COLORS[item_color],highlights=highlights_for(content,f"items.{item_index}.title"))
     return tile
 
 
@@ -784,7 +832,7 @@ def render_visual_component(p, spec, content, key, meta, box):
                 bar_top=baseline-available*(value/maximum)
                 p.draw.rectangle((round(left),round(bar_top),round(left+bar_width),round(baseline)),fill=fill)
                 p.text(f"{key}-value-{i+1}",f"{value}%",(x1+pad+i*slot,y1+pad,x1+pad+(i+1)*slot-4,top-4),key,18,10,True,fill,"center")
-                p.text(f"{key}-label-{i+1}",entry["title"],(x1+pad+i*slot,baseline+8,x1+pad+(i+1)*slot-4,y2-pad),key,15,9,True,align="center")
+                p.text(f"{key}-label-{i+1}",entry["title"],(x1+pad+i*slot,baseline+8,x1+pad+(i+1)*slot-4,y2-pad),key,15,9,True,align="center",highlights=item_highlights(content,entry,"title"))
             p.component_rules.append({"component":"bar-chart","items":len(items),"commonBaseline":True,
                                       "equalWidths":True,"regularSpacing":True,"tonalVariation":len(set(fills))==len(fills),"score":1.0})
             return
@@ -805,7 +853,7 @@ def render_visual_component(p, spec, content, key, meta, box):
             top=y1+pad+i*row_h; marker=max(10,min(18,row_h*.28))
             p.draw.rectangle((legend_x,top+3,legend_x+marker,top+3+marker),fill=fill)
             label=f"{value}%  {entry['title']}"
-            p.text(f"{key}-legend-{i+1}",label,(legend_x+marker+10,top,x2-pad,top+row_h-4),key,18,11,True)
+            p.text(f"{key}-legend-{i+1}",label,(legend_x+marker+10,top,x2-pad,top+row_h-4),key,18,11,True,highlights=item_highlights(content,entry,"title"))
         p.component_rules.append({"component":"pie-chart","items":len(items),"largestFirst":True,
                                   "legendAdjacent":True,"circleDominant":side>=min(w,h)*.42,
                                   "tonalVariation":len(set(fills))==len(fills),
@@ -844,7 +892,7 @@ def render_visual_component(p, spec, content, key, meta, box):
                 text_box=(cx+icon_side/2+12,y1+pad+i*segment,x2-pad,y1+pad+(i+1)*segment-4)
                 text_valign="center"
             p.text(f"{key}-label-{i+1}",label,text_box,key,17,10,True,COLORS[color] if not entry["text"] else None,
-                   valign=text_valign)
+                   valign=text_valign,highlights=item_highlights(content,entry,"title","text"))
         p.component_rules.append({"component":role,"items":len(items),"direction":"horizontal" if horizontal else "vertical",
                                   "equalNodes":True,"regularSpacing":True,"lineCrossings":0,"inwardFlow":True,"score":1.0})
         return
@@ -858,10 +906,12 @@ def render_visual_component(p, spec, content, key, meta, box):
             icon_box=(left+(right-left-icon_side)/2,y1+pad*1.35,left+(right-left+icon_side)/2,y1+pad*1.35+icon_side)
             p.icon(f"{key}-icon-{i+1}",item_icon(entry["item"],content["iconIntent"]),icon_box,key,color)
             title_top=icon_box[3]+pad*.45
-            p.text(f"{key}-title-{i+1}",entry["title"],(left+12,title_top,right-12,title_top+p.g*.65),key,21,13,True,COLORS[color],"center")
-            p.text(f"{key}-text-{i+1}",entry["text"],(left+12,title_top+p.g*.72,right-12,y2-pad*1.3),key,16,10,False,align="center")
+            p.text(f"{key}-title-{i+1}",entry["title"],(left+12,title_top,right-12,title_top+p.g*.65),key,21,13,True,COLORS[color],"center",highlights=item_highlights(content,entry,"title"))
+            p.text(f"{key}-text-{i+1}",entry["text"],(left+12,title_top+p.g*.72,right-12,y2-pad*1.3),key,16,10,False,align="center",highlights=item_highlights(content,entry,"text"))
         p.component_rules.append({"component":"comparison","items":count,"equalColumns":True,
-                                  "sharedAxis":True,"highlightCount":0,"score":1.0 if count in (2,3) else .4})
+                                  "sharedAxis":True,
+                                  "highlightCount":sum(len(item_highlights(content,entry,"title","text")) for entry in items),
+                                  "score":1.0 if count in (2,3) else .4})
         return
 
     # Metric cards: large value plus a concise label, arranged as an even grid.
@@ -875,16 +925,16 @@ def render_visual_component(p, spec, content, key, meta, box):
         value=entry["item"].get("value",0)
         metric=f"{value}%" if value else str(i+1).zfill(2)
         p.text(f"{key}-value-{i+1}",metric,(left+10,top+8,left+cell_w-16,top+cell_h*.48),key,36,22,True,COLORS[color])
-        p.text(f"{key}-label-{i+1}",entry["title"],(left+10,top+cell_h*.5,left+cell_w-16,top+cell_h-14),key,17,11,True)
+        p.text(f"{key}-label-{i+1}",entry["title"],(left+10,top+cell_h*.5,left+cell_w-16,top+cell_h-14),key,17,11,True,highlights=item_highlights(content,entry,"title"))
     p.component_rules.append({"component":"stats","items":len(items),"equalCells":True,
                               "rowMajor":True,"singleDominantValue":True,"score":1.0})
 
 
-def render_component_description(p, key, value, box, pad, type_scale):
+def render_component_description(p, key, value, box, pad, type_scale, highlights=None):
     """Paint an attached component band so explanatory copy is never loose on the grid."""
     panel=p.panel("component-description-panel",box,key)
     p.text("component-description",value,inset(panel,pad),"component-description-panel",
-           type_scale["subtitle"],type_scale["subtitleMin"])
+           type_scale["subtitle"],type_scale["subtitleMin"],highlights=highlights)
     return panel
 
 
@@ -1216,14 +1266,14 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
                 label_box=(tx1,title_top,tx1+label_width,title_top+g*.42)
                 p.label("eyebrow-label",content["eyebrow"],label_box,key,p.accent)
                 title_top=label_box[3]+pad*.6
-            p.text("title",meta["text"],(tx1,title_top,tx2,y+height-pad),key,type_scale["title"],type_scale["titleMin"],True)
+            p.text("title",meta["text"],(tx1,title_top,tx2,y+height-pad),key,type_scale["title"],type_scale["titleMin"],True,highlights=highlights_for(content,"title"))
         elif block["kind"]=="subtitle":
-            p.text("subtitle-text",meta["text"],inset(box,pad),key,type_scale["subtitle"],type_scale["subtitleMin"])
+            p.text("subtitle-text",meta["text"],inset(box,pad),key,type_scale["subtitle"],type_scale["subtitleMin"],highlights=highlights_for(content,"body"))
         elif block["kind"]=="visual":
             description_rows=meta.get("descriptionRows",0)
             if description_rows:
                 description_box=(x,y,x+width,y+description_rows*g)
-                render_component_description(p,key,meta["description"],description_box,pad,type_scale)
+                render_component_description(p,key,meta["description"],description_box,pad,type_scale,highlights_for(content,"body"))
             visual_box=(x,y+description_rows*g,x+width,y+height)
             render_visual_component(p,spec,content,key,meta,visual_box)
             if p.component_rules:
@@ -1239,7 +1289,7 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
             description_rows=meta.get("descriptionRows",0)
             if description_rows:
                 description_box=(x,y,x+width,y+description_rows*g)
-                render_component_description(p,key,meta["description"],description_box,pad,type_scale)
+                render_component_description(p,key,meta["description"],description_box,pad,type_scale,highlights_for(content,"body"))
             tile_w=meta["tileWidth"]*g; tile_h=meta["tileHeight"]*g
             for item_index,(item_meta,(offset_x,offset_y)) in enumerate(zip(meta["items"],meta["positions"])):
                 item_key=f"item-{item_index+1}"
