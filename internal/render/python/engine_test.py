@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from PIL import Image
-from engine import Page, FORMATS, COLORS, icon_mask, render_campaign, render_page, render_decorative_branches, normalize, wrap, font_path, face, overlap, campaign_style, candidate_specs, block_options, frame_geometry
+from engine import Page, FORMATS, COLORS, icon_mask, render_campaign, render_page, render_decorative_branches, normalize, wrap, font_path, face, overlap, campaign_style, candidate_specs, block_options, frame_geometry, content_top_clearance_rows
 
 
 def campaign(platform="instagram-square", seed=424242):
@@ -76,6 +76,9 @@ class EngineTests(unittest.TestCase):
                         self.assertIn(page["selectedLayout"],page["candidateLayouts"])
                         self.assertTrue(all(name.startswith("pack-") for name in page["candidateLayouts"]))
                         self.assertTrue(page["blockAllocations"])
+                        expected_clearance=(2,3) if platform=="instagram-story" else (0,)
+                        self.assertIn(page["contentTopClearanceRows"],expected_clearance)
+                        self.assertTrue(all(block["row"]>=page["contentTopClearanceRows"] for block in page["blockAllocations"]))
                         heading=next(block for block in page["blockAllocations"] if block["type"]=="title")
                         top_level=[block for block in page["blockAllocations"] if "listPattern" not in block]
                         content_blocks=[block for block in top_level if block["type"]!="title"]
@@ -343,6 +346,21 @@ class EngineTests(unittest.TestCase):
                 self.assertEqual((height-header-footer)%module,0)
                 self.assertGreater(header,0)
                 self.assertGreater(footer,0)
+
+    def test_story_content_clearance_varies_without_reserving_decorative_cells(self):
+        clearances={content_top_clearance_rows(FORMATS["instagram-story"],random.Random(seed)) for seed in range(20)}
+        self.assertEqual(clearances,{2,3})
+        self.assertEqual(content_top_clearance_rows(FORMATS["instagram-square"],random.Random(1)),0)
+
+        header,_=frame_geometry(1920,120)
+        reaches_reserved_rows=False
+        for seed in range(40):
+            page=Page(1080,1920,True,self.design,1,"pink")
+            page.content_top=header
+            page.reserve("content",(0,header,1080,header+15*120))
+            branches=render_decorative_branches(page,{"accent":"pink","gradient":"pink-to-white","colorMode":"mono"},{(4,3)},9,15,random.Random(seed))
+            reaches_reserved_rows |= any(branch["row"]<3 for branch in branches)
+        self.assertTrue(reaches_reserved_rows,"decorative cells should remain free to enter the Story opening")
 
     def test_unicode_normalization_fallback_and_long_word_wrap(self):
         text=normalize("Make sure: action, cafe, join, and step-by-step")

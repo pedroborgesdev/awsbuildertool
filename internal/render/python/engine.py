@@ -18,7 +18,7 @@ import unicodedata
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
 
-VERSION = "5.5.0"
+VERSION = "5.6.0"
 FORMATS = {
     "instagram-portrait": (1080, 1350), "instagram-square": (1080, 1080),
     "instagram-story": (1080, 1920), "linkedin-portrait": (1080, 1350),
@@ -37,6 +37,11 @@ def frame_geometry(height, module):
     footer=max(60,round(module*.6))
     header+=(height-header-footer)%module
     return header,footer
+
+
+def content_top_clearance_rows(size, rng):
+    """Keep Story editorial content below a variable decorative opening."""
+    return rng.choice((2,3)) if tuple(size)==FORMATS["instagram-story"] else 0
 
 
 def normalize(value):
@@ -331,6 +336,7 @@ class Page:
                 "footerBordered":getattr(self,"footer_bordered",False),
                 "footerHeight":getattr(self,"footer_height",0),
                 "footerContentAxis":getattr(self,"footer_content_axis",0),
+                "contentTopClearanceRows":getattr(self,"content_top_clearance_rows",0),
                 "gridX":self.grid_x,"gridY":self.grid_y,"regions":self.regions,"texts":self.texts,"squares":self.squares}
 
     def text_height(self, value, width, size, bold=False):
@@ -641,7 +647,7 @@ def block_options(p, content, cols, rows, spec, rng, external_image=None):
     return blocks
 
 
-def pack_blocks(blocks, cols, rows, module, gap, title_position, rng, composition_bias="balanced"):
+def pack_blocks(blocks, cols, rows, module, gap, title_position, rng, composition_bias="balanced", minimum_row=0):
     """Randomized backtracking rectangle packer over the real module grid."""
     occupied=set(); placed={}; visits=[0]
     # Semantic order controls reading order, while geometry remains unrestricted.
@@ -673,7 +679,7 @@ def pack_blocks(blocks, cols, rows, module, gap, title_position, rng, compositio
         for width,height,meta in options[:min(24,len(options))]:
             heading=placed.get("heading")
             positions=[]
-            for y in range(rows-height+1):
+            for y in range(minimum_row,rows-height+1):
                 for x in range(cols-width+1):
                     if heading and block["kind"]!="title":
                         heading_row=heading[1]; heading_height=heading[3]
@@ -686,9 +692,9 @@ def pack_blocks(blocks, cols, rows, module, gap, title_position, rng, compositio
                                                 ((cell[0]-1,cell[1]),(cell[0]+1,cell[1]),(cell[0],cell[1]-1),(cell[0],cell[1]+1))):
                         continue
                     positions.append((x,y))
-            anchor_count=min(4,max(1,rows-height+1))
+            anchor_count=min(4,max(1,rows-height-minimum_row+1))
             if title_position=="top":
-                anchor_rows=list(range(anchor_count))
+                anchor_rows=list(range(minimum_row,minimum_row+anchor_count))
             else:
                 last=rows-height
                 anchor_rows=[last-offset for offset in range(anchor_count)]
@@ -1160,9 +1166,11 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
     p.reserve("content",(0,header_height,w,bottom))
     total_rows=(bottom-header_height)//g; total_cols=w//g
     rng=random.Random(spec["attemptSeed"])
+    top_clearance=content_top_clearance_rows(size,rng)
+    p.content_top_clearance_rows=top_clearance
     blocks=block_options(p,content,total_cols,total_rows,spec,rng,external_image)
     try:
-        placements,occupied=pack_blocks(blocks,total_cols,total_rows,g,spec["componentGap"],spec["titlePosition"],rng,spec["compositionBias"])
+        placements,occupied=pack_blocks(blocks,total_cols,total_rows,g,spec["componentGap"],spec["titlePosition"],rng,spec["compositionBias"],top_clearance)
     except ValueError:
         if not spec["componentGap"]:
             raise
@@ -1170,7 +1178,7 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
         # to edge, keep the content and relax that preference instead of
         # forcing a new editorial draft.
         spec["componentGap"]=0
-        placements,occupied=pack_blocks(blocks,total_cols,total_rows,g,0,spec["titlePosition"],rng,spec["compositionBias"])
+        placements,occupied=pack_blocks(blocks,total_cols,total_rows,g,0,spec["titlePosition"],rng,spec["compositionBias"],top_clearance)
     p.block_allocations=[]
     p.component_rules=[]
     p.component_gap=spec["componentGap"]
