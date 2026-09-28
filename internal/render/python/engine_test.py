@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from PIL import Image
-from engine import Page, FORMATS, COLORS, icon_mask, render_campaign, render_page, render_decorative_branches, normalize, wrap, font_path, face, overlap, campaign_style, candidate_specs, block_options
+from engine import Page, FORMATS, COLORS, icon_mask, render_campaign, render_page, render_decorative_branches, normalize, wrap, font_path, face, overlap, campaign_style, candidate_specs, block_options, frame_geometry
 
 
 def campaign(platform="instagram-square", seed=424242):
@@ -136,8 +136,11 @@ class EngineTests(unittest.TestCase):
                                 x1,y1,x2,y2=region["box"]
                                 self.assertEqual(x1%page["module"],0,name)
                                 self.assertEqual(x2%page["module"],0,name)
-                                self.assertEqual(y1%page["module"],0,name)
-                                self.assertTrue(y2%page["module"]==0 or y2==page["height"],name)
+                                if name=="header":
+                                    self.assertEqual((y1,y2),(0,page["headerHeight"]),name)
+                                elif name not in ("footer","content","cta"):
+                                    self.assertEqual((y1-page["contentTop"])%page["module"],0,name)
+                                    self.assertEqual((y2-page["contentTop"])%page["module"],0,name)
                         icon_assets=[name for name,region in page["regions"].items() if region["kind"]=="asset" and "icon" in name]
                         self.assertGreaterEqual(len(icon_assets),1)
                         expected_items=len(campaign(platform)["pages"][page_index]["items"])
@@ -253,7 +256,8 @@ class EngineTests(unittest.TestCase):
     def test_decorative_cluster_can_form_a_real_fork(self):
         # A spacious grid makes the brancher exercise its tree path instead of
         # merely proving that a two-cell connected pair can be drawn.
-        forks=[]; solid_without_border=False; continuous_gradient=False
+        forks=[]; merged_solid_edge=False; merged_gradient_edge=False
+        outlined_solid_edge=False; outlined_gradient_edge=False; continuous_gradient=False
         for seed in range(32):
             p=Page(1080,1080,True,self.design,1)
             p.reserve("content",(0,p.g,p.w,p.h-p.g))
@@ -263,11 +267,22 @@ class EngineTests(unittest.TestCase):
                 cluster=[record for record in records if record["cluster"]==cluster_id]
                 cells={(record["column"],record["row"]) for record in cluster}
                 forks.extend(cell for cell in cells if sum(neighbor in cells for neighbor in ((cell[0]-1,cell[1]),(cell[0]+1,cell[1]),(cell[0],cell[1]-1),(cell[0],cell[1]+1)))>=3)
-                for record in cluster:
-                    px=(record["column"]*p.g,p.g+record["row"]*p.g)
-                    if record["type"]=="solid":
-                        expected=tuple(bytes.fromhex(COLORS[record["color"]][1:]))
-                        solid_without_border |= p.image.getpixel(px)==expected
+                line=tuple(bytes.fromhex(p.line[1:]))
+                for cell_x,cell_y in cells:
+                    for neighbor in ((cell_x+1,cell_y),(cell_x,cell_y+1)):
+                        if neighbor not in cells: continue
+                        point=((cell_x+1)*p.g,p.g+cell_y*p.g+p.g//2) if neighbor[0]>cell_x else (cell_x*p.g+p.g//2,p.g+(cell_y+1)*p.g)
+                        if cluster[0]["type"]=="solid": merged_solid_edge |= p.image.getpixel(point)!=line
+                        else: merged_gradient_edge |= p.image.getpixel(point)!=line
+                    exposed=next((neighbor for neighbor in ((cell_x-1,cell_y),(cell_x+1,cell_y),(cell_x,cell_y-1),(cell_x,cell_y+1)) if neighbor not in cells),None)
+                    if exposed:
+                        if exposed[0]<cell_x: point=(cell_x*p.g,p.g+cell_y*p.g+p.g//2)
+                        elif exposed[0]>cell_x: point=((cell_x+1)*p.g,p.g+cell_y*p.g+p.g//2)
+                        elif exposed[1]<cell_y: point=(cell_x*p.g+p.g//2,p.g+cell_y*p.g)
+                        else: point=(cell_x*p.g+p.g//2,p.g+(cell_y+1)*p.g)
+                        if 0<=point[0]<p.w and 0<=point[1]<p.h:
+                            if cluster[0]["type"]=="solid": outlined_solid_edge |= p.image.getpixel(point)==line
+                            else: outlined_gradient_edge |= p.image.getpixel(point)==line
                 if cluster[0]["type"]=="gradient":
                     by_cell={(record["column"],record["row"]):record for record in cluster}
                     for cell in by_cell:
@@ -277,8 +292,29 @@ class EngineTests(unittest.TestCase):
                             box_b=(neighbor[0]*p.g,p.g+neighbor[1]*p.g,(neighbor[0]+1)*p.g,p.g+(neighbor[1]+1)*p.g)
                             continuous_gradient |= p.image.crop(box_a).tobytes()!=p.image.crop(box_b).tobytes()
         self.assertTrue(forks, "expected at least one T/Y-shaped decorative fork")
-        self.assertTrue(solid_without_border,"solid branch should paint over grid dividers")
+        self.assertTrue(merged_solid_edge,"adjacent solid color cells should have no divider")
+        self.assertTrue(merged_gradient_edge,"adjacent gradient cells should have no divider")
+        self.assertTrue(outlined_solid_edge,"solid color should retain a border against neutral space")
+        self.assertTrue(outlined_gradient_edge,"gradient should retain a border against neutral space")
         self.assertTrue(continuous_gradient,"adjacent cells should sample different parts of one cluster gradient")
+
+    def test_components_keep_internal_strokes_without_outer_page_borders(self):
+        p=Page(1080,1080,True,self.design,1,"pink")
+        box=(p.g,p.g,3*p.g,3*p.g)
+        p.panel("component",box,fill=p.accent)
+        line=tuple(bytes.fromhex(p.line[1:])); accent=tuple(bytes.fromhex(p.accent[1:]))
+        self.assertEqual(p.image.getpixel((p.g,p.g+30)),line)
+        self.assertEqual(p.image.getpixel((p.g+1,p.g+30)),line)
+        self.assertEqual(p.image.getpixel((p.g+2,p.g+30)),accent)
+
+        framed=Page(1080,1080,True,self.design,1,"pink")
+        framed.panel("header",(0,0,framed.w,framed.g),fill=framed.accent,bordered=False)
+        framed.panel("footer",(0,framed.h-framed.g,framed.w,framed.h),fill=framed.accent,bordered=True)
+        self.assertEqual(framed.image.getpixel((0,30)),accent)
+        self.assertEqual(framed.image.getpixel((30,0)),accent)
+        self.assertEqual(framed.image.getpixel((0,framed.h-30)),accent)
+        self.assertEqual(framed.image.getpixel((30,framed.h-1)),accent)
+        self.assertEqual(framed.image.getpixel((30,framed.h-framed.g)),line)
 
     def test_grid_has_horizontal_lines_and_square_cells(self):
         p=Page(1080,1080,True,self.design,1)
@@ -286,15 +322,27 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(p.grid_x,p.grid_y)
         self.assertEqual(p.image.getpixel((p.g//2,p.g)),(43,53,66))
         self.assertNotEqual(p.image.getpixel((p.g//2,p.g//2)),p.image.getpixel((p.g//2,p.g)))
+        self.assertEqual(p.image.getpixel((0,p.g//2)),tuple(bytes.fromhex(p.bg[1:])))
+        self.assertEqual(p.image.getpixel((p.g//2,0)),tuple(bytes.fromhex(p.bg[1:])))
 
     def test_coarse_grid_uses_nine_primary_columns(self):
         expected={(1080,1080):(120,9),(1080,1350):(120,9),(1080,1920):(120,9),
-                  (1200,1500):(120,10),(1600,900):(100,16),(1920,1080):(120,16)}
+                  (1200,1500):(100,12),(1600,900):(100,16),(1920,1080):(120,16)}
         for size,(module,columns) in expected.items():
             with self.subTest(size=size):
                 p=Page(*size,True,self.design,1)
                 self.assertEqual(p.g,module)
                 self.assertEqual(p.w//p.g,columns)
+
+    def test_every_format_has_only_complete_grid_cells_between_header_and_footer(self):
+        for platform,(width,height) in FORMATS.items():
+            with self.subTest(platform=platform):
+                module=Page(width,height,True,self.design,1).g
+                header,footer=frame_geometry(height,module)
+                self.assertEqual(width%module,0)
+                self.assertEqual((height-header-footer)%module,0)
+                self.assertGreater(header,0)
+                self.assertGreater(footer,0)
 
     def test_unicode_normalization_fallback_and_long_word_wrap(self):
         text=normalize("Make sure: action, cafe, join, and step-by-step")
@@ -372,9 +420,71 @@ class EngineTests(unittest.TestCase):
             self.assertIn("footer-aws-logo",page["regions"])
             counter=page["regions"]["page-number"]["box"]
             logo=page["regions"]["footer-aws-logo"]["box"]
+            photo_box=page["regions"]["footer-photo"]["box"]
+            name_box=page["regions"]["footer-about-name"]["box"]
+            subtitle_box=page["regions"]["footer-about-subtitle"]["box"]
+            photo_center=(photo_box[1]+photo_box[3])/2
             self.assertAlmostEqual((counter[0]+counter[2])/2,page["width"]/2,delta=2)
             self.assertGreater(logo[0],counter[2])
+            self.assertAlmostEqual((logo[1]+logo[3])/2,photo_center,delta=1)
+            self.assertAlmostEqual((name_box[1]+subtitle_box[3])/2,photo_center,delta=1)
+            self.assertGreaterEqual(subtitle_box[1],name_box[3])
+            self.assertGreaterEqual(name["size"],15)
+            self.assertGreaterEqual(next(text for text in page["texts"] if text["name"]=="footer-about-subtitle")["size"],11)
+            self.assertLess(page["footerHeight"],page["module"])
+            self.assertFalse(page["headerBordered"])
+            self.assertTrue(page["footerBordered"])
             self.assertGreaterEqual(next(text for text in page["texts"] if text["name"]=="page-number")["size"],13)
+
+    def test_external_image_is_a_grid_block_and_preserves_focus(self):
+        content={"role":"cover","eyebrow":"Community","title":"People build better together","body":"A practical learning moment.",
+                 "items":[],"cta":"","iconIntent":"community","imageId":"image-1","imageRole":"portrait"}
+        source=Image.new("RGB",(900,600),"#42B4FF")
+        external={"image":source,"name":"people.jpg","analysis":{
+            "focusRect":{"x":0.05,"y":0.2,"width":0.25,"height":0.6},
+            "relevantCells":["A1","B1"]}}
+        probe=Page(1080,1350,False,self.design,1,"blue")
+        options=next(block for block in block_options(probe,content,9,9,{"titleIconMode":"none"},random.Random(1),external) if block["kind"]=="photograph")["options"]
+        dimensions={(width,height) for width,height,meta in options}
+        self.assertTrue({(4,3),(4,4)}.issubset(dimensions))
+        result=render_page(content,0,1,(1080,1350),self.design,31337,external_image=external)
+        self.assertNotIn("page-number",result.regions)
+        carousel_result=render_page(content,0,2,(1080,1350),self.design,31337,external_image=external)
+        self.assertIn("page-number",carousel_result.regions)
+        self.assertEqual(result.header_height,78)
+        self.assertEqual(result.regions["content"]["box"][1],result.header_height)
+        content_bottom=result.regions["content"]["box"][3]
+        self.assertEqual((content_bottom-result.header_height)//result.g,10)
+        self.assertEqual(content_bottom-(result.header_height+10*result.g),0)
+        decorative=[region["box"] for name,region in result.regions.items() if name.startswith("decor-branch-")]
+        self.assertLessEqual(max(box[3] for box in decorative),result.regions["footer"]["box"][1])
+        photo=next(block for block in result.block_allocations if block["type"]=="photograph")
+        self.assertGreaterEqual(photo["columns"],4)
+        self.assertGreaterEqual(photo["rows"],3)
+        self.assertEqual(result.image_crop["source"],"people.jpg")
+        left,top,right,bottom=result.image_crop["sourceCrop"]
+        self.assertLessEqual(left,45)
+        self.assertGreaterEqual(right,270)
+        self.assertLessEqual(top,120)
+        self.assertGreaterEqual(bottom,480)
+        self.assertEqual(result.image_crop["mode"],"cover")
+        self.assertEqual(result.image_crop["relevantCells"],["A1","B1"])
+        x1,y1,x2,y2=result.image_crop["box"]
+        line=tuple(bytes.fromhex(result.line[1:]))
+        self.assertEqual(result.image.getpixel((x1,y1)),line)
+        if x2<result.w: self.assertEqual(result.image.getpixel((x2,y1+10)),line)
+        if y2<result.h: self.assertEqual(result.image.getpixel((x1+10,y2)),line)
+        for point in ((x1+2,y1+2),(x2-1,y1+2),(x1+2,y2-1),(x2-1,y2-1)):
+            self.assertEqual(result.image.getpixel(point),(66,180,255))
+
+        gridless=render_page(content,0,1,(1080,1350),self.design,31337,external_image=external,show_grid=False)
+        self.assertFalse(gridless.show_grid)
+        image_box=gridless.regions["content-image-asset"]["box"]
+        self.assertEqual(gridless.image.getpixel((image_box[0],image_box[1])),(66,180,255))
+        empty=Page(1080,1080,True,self.design,1,"pink",False)
+        empty.panel("gridless-square",(empty.g,empty.g,2*empty.g,2*empty.g),fill=empty.accent,square=True)
+        self.assertEqual(empty.image.getpixel((empty.g,empty.g)),tuple(bytes.fromhex(empty.accent[1:])))
+        self.assertEqual(empty.image.getpixel((empty.g//2,empty.g)),tuple(bytes.fromhex(empty.bg[1:])))
 
     def test_footer_without_about_places_logo_left_and_counter_right(self):
         draft=campaign("instagram-square",8181)
@@ -389,6 +499,8 @@ class EngineTests(unittest.TestCase):
             self.assertLess(logo[0],page["width"]/2)
             self.assertGreater(counter[0],page["width"]/2)
             self.assertLess(page["width"]-counter[2],page["width"]*.03)
+            self.assertLess(page["footerHeight"],page["module"])
+            self.assertAlmostEqual((logo[1]+logo[3])/2,page["footerContentAxis"],delta=1)
 
     def test_five_items_and_cta_regression(self):
         page={"role":"list","eyebrow":"AWS Builder Center","title":"Benefits for students and professionals","body":"",

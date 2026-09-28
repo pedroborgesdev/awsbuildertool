@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -42,7 +43,7 @@ func TestContentUsesJSONAndPreservesServerBrief(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if draft.Brief != brief || len(draft.Pages) != 3 {
+	if !reflect.DeepEqual(draft.Brief, brief) || len(draft.Pages) != 3 {
 		t.Fatal("invalid draft")
 	}
 }

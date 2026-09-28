@@ -83,6 +83,16 @@ func MockDraft(brief domain.GenerateRequest) domain.CampaignDraft {
 		}
 		pages[i] = p
 	}
+	for index, image := range brief.Images {
+		if index >= len(pages) {
+			break
+		}
+		pages[index].ImageID = image.ID
+		pages[index].ImageRole = "support"
+		if pages[index].Role == "cover" {
+			pages[index].ImageRole = "hero"
+		}
+	}
 	d := domain.CampaignDraft{Version: 1, Brief: brief, Pages: pages}
 	d.Normalize()
 	return d

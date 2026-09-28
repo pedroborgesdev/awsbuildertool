@@ -14,6 +14,9 @@ interface CreatorPageProps {
   onStepChange: (step: number) => void
   onUpdate: <K extends keyof GenerateRequest>(key: K, value: GenerateRequest[K]) => void
   onImportPhoto: (file?: File) => void
+  onImportContentImages: (files: File[]) => void
+  onRemoveContentImage: (id: string) => void
+  onDismissError: () => void
   onExit: () => void
   onSubmit: (event: FormEvent) => void
 }
@@ -27,6 +30,9 @@ export function CreatorPage({
   onStepChange,
   onUpdate,
   onImportPhoto,
+  onImportContentImages,
+  onRemoveContentImage,
+  onDismissError,
   onExit,
   onSubmit,
 }: CreatorPageProps) {
@@ -86,6 +92,9 @@ export function CreatorPage({
               error={error}
               onUpdate={onUpdate}
               onImportPhoto={onImportPhoto}
+              onImportContentImages={onImportContentImages}
+              onRemoveContentImage={onRemoveContentImage}
+              onDismissError={onDismissError}
               onStepChange={onStepChange}
               onExit={onExit}
               onSubmit={onSubmit}

@@ -26,6 +26,28 @@ func TestEditorialPromptIsSmall(t *testing.T) {
 	}
 }
 
+func TestEditorialPromptRequiresEveryUploadedImage(t *testing.T) {
+	brief := domain.GenerateRequest{
+		Theme: "Community", Goal: "Show collaboration", Platform: "instagram-square", PostCount: 1,
+		Images: []domain.ExternalImage{{
+			ID: "image-1", Name: "team.jpg", DataURL: "data:image/jpeg;base64,secret-pixels",
+			Analysis: domain.ImageAnalysis{Description: "A smiling team", RelevantCells: []string{"A1", "A2"}},
+		}},
+	}
+	value, err := NewBuilder(t.TempDir()).Build(brief)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Every image in the catalog must appear exactly once", `"id": "image-1"`, "A smiling team"} {
+		if !strings.Contains(value, want) {
+			t.Fatalf("prompt is missing %q", want)
+		}
+	}
+	if strings.Contains(value, "secret-pixels") {
+		t.Fatal("raw image data leaked into the editorial prompt")
+	}
+}
+
 func TestBundledRuntimeDesignSystemIsComplete(t *testing.T) {
 	if !NewBuilder("../../design_system").Ready() {
 		t.Fatal("minimum design system is incomplete")

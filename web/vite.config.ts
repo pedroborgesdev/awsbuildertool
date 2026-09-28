@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'https://buildertool.app',
+      '/api': 'http://localhost:8080',
       '/design-assets': 'http://localhost:8080',
     },
   },

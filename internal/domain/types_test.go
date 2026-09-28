@@ -100,6 +100,18 @@ func TestValidateRejectsInvalidCount(t *testing.T) {
 	}
 }
 
+func TestValidateRequiresAtLeastOnePagePerContentImage(t *testing.T) {
+	r := validRequest()
+	r.PostCount = 1
+	r.Images = []ExternalImage{
+		{ID: "image-1", Name: "one.png", DataURL: validContentImageDataURL(t)},
+		{ID: "image-2", Name: "two.png", DataURL: validContentImageDataURL(t)},
+	}
+	if err := r.Validate(); err == nil || !strings.Contains(err.Error(), "page count") {
+		t.Fatalf("expected page-count error, got %v", err)
+	}
+}
+
 func TestValidateAcceptsKnownFormat(t *testing.T) {
 	r := validRequest()
 	r.Normalize("modelo/padrao")
@@ -119,4 +131,26 @@ func TestValidateContextMinimum(t *testing.T) {
 	if err := r.Validate(); err != nil {
 		t.Fatalf("200-character context rejected: %v", err)
 	}
+}
+
+func TestRelevantImageCellsMustFormRectangle(t *testing.T) {
+	for _, cells := range [][]string{{"A1"}, {"A1", "A2", "B1", "B2"}, {"A2", "A3"}, {"A1", "A2", "A3", "B1", "B2", "B3"}} {
+		if !CellsFormRectangle(cells) {
+			t.Fatalf("valid rectangle rejected: %v", cells)
+		}
+	}
+	for _, cells := range [][]string{{}, {"A1", "B2"}, {"A1", "A3"}, {"C1"}, {"A1", "A1"}} {
+		if CellsFormRectangle(cells) {
+			t.Fatalf("invalid rectangle accepted: %v", cells)
+		}
+	}
+}
+
+func validContentImageDataURL(t *testing.T) string {
+	t.Helper()
+	var data bytes.Buffer
+	if err := png.Encode(&data, image.NewRGBA(image.Rect(0, 0, 64, 64))); err != nil {
+		t.Fatal(err)
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data.Bytes())
 }

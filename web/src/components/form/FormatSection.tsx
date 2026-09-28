@@ -43,7 +43,7 @@ export function FormatSection({ form, onUpdate }: FormatSectionProps) {
       <Field label={t.publish.pages} hint={t.publish.pagesHint}>
         <NumberControl
           value={form.postCount}
-          min={1}
+          min={Math.max(1, form.images.length)}
           max={10}
           onChange={(value) => onUpdate('postCount', value)}
           decreaseLabel={t.publish.decrease}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../../i18n/context'
-import { eyebrowClass, scrollbarClass, skeletonClass } from '../../styles'
+import { eyebrowClass, scrollbarClass } from '../../styles'
+import { Loader } from '../ui/Loader'
 import { ImageViewer } from './ImageViewer'
 import type { GenerateResponse } from '../../types'
 
@@ -43,7 +44,9 @@ export function Gallery({ result, loading }: GalleryProps) {
         <div ref={trackRef} className={`flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 ${scrollbarClass}`} role="region" aria-live="polite" aria-label={t.gallery.title}>
           {loading ? (
             Array.from({ length: 3 }, (_, index) => (
-              <div className={`aspect-[4/5] basis-[84%] shrink-0 snap-start border border-grid sm:basis-[56%] lg:basis-[46%] ${skeletonClass}`} key={index} aria-hidden="true" />
+              <div className="grid aspect-[4/5] basis-[84%] shrink-0 snap-start place-items-center border border-grid bg-code sm:basis-[56%] lg:basis-[46%]" key={index} aria-hidden="true">
+                <Loader className="size-24 max-[520px]:size-20" />
+              </div>
             ))
           ) : images.length ? images.map((file, index) => (
             <figure className="group basis-[84%] shrink-0 snap-start border border-grid bg-ink sm:basis-[56%] lg:basis-[46%]" key={file.url}>

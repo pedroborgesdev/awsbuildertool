@@ -1,6 +1,10 @@
 package domain
 
 import (
+	"bytes"
+	"encoding/base64"
+	"image"
+	"image/png"
 	"sort"
 	"strings"
 	"testing"
@@ -113,5 +117,32 @@ func TestIconCatalogHasEveryPixelarticonSorted(t *testing.T) {
 		if !Icons[want] {
 			t.Fatalf("missing icon intent %q", want)
 		}
+	}
+}
+
+func TestEditorialImageAssignmentUsesKnownImageOnce(t *testing.T) {
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, image.NewRGBA(image.Rect(0, 0, 64, 64))); err != nil {
+		t.Fatal(err)
+	}
+	brief := GenerateRequest{Theme: "Test", Goal: "Teach", Platform: "instagram-square", PostCount: 2, ContentLevel: "balanced", AdditionalContext: strings.Repeat("a", 400), Images: []ExternalImage{{
+		ID: "image-1", Name: "person.png", DataURL: "data:image/png;base64," + base64.StdEncoding.EncodeToString(encoded.Bytes()),
+		Analysis: ImageAnalysis{Description: "A smiling person", Subjects: []string{"person"}, RelevantCells: []string{"A1"}, FocusRect: NormalizedRect{Width: .3, Height: .5}, CropTolerance: "medium", Confidence: .9},
+	}}}
+	draft := CampaignDraft{Version: 1, Brief: brief, Pages: []PageContent{
+		{Role: "cover", Title: "Welcome", IconIntent: "user", ImageID: "image-1", ImageRole: "portrait"},
+		{Role: "cta", Title: "Continue", IconIntent: "share"},
+	}}
+	if err := draft.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	draft.Pages[0].ImageID, draft.Pages[0].ImageRole = "", ""
+	if draft.Validate() == nil {
+		t.Fatal("unused uploaded image was accepted")
+	}
+	draft.Pages[0].ImageID, draft.Pages[0].ImageRole = "image-1", "portrait"
+	draft.Pages[1].ImageID, draft.Pages[1].ImageRole = "image-1", "support"
+	if draft.Validate() == nil {
+		t.Fatal("reused image was accepted")
 	}
 }

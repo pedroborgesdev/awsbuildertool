@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCommunityImages, type CommunityImage } from '../../api'
 import { useI18n } from '../../i18n/context'
-import { eyebrowClass, skeletonClass } from '../../styles'
+import { eyebrowClass } from '../../styles'
 import { ImageViewer } from '../gallery/ImageViewer'
+import { Loader } from '../ui/Loader'
 
 const campaignThemeClasses = [
   'border-pink bg-pink',
@@ -101,15 +102,20 @@ export function CommunityCarousel() {
           aria-live="polite"
         >
           {loading ? (
-            Array.from({ length: 4 }, (_, index) => (
-              <div
-                className="min-w-0 basis-[82%] shrink-0 snap-start border border-grid bg-panel p-2 sm:basis-[46%] lg:basis-[31%]"
-                aria-hidden="true"
-                key={index}
-              >
-                <span className={`${skeletonClass} block aspect-[4/5]`} />
-              </div>
-            ))
+            <>
+              {Array.from({ length: 4 }, (_, index) => (
+                <div
+                  className="min-w-0 basis-[82%] shrink-0 snap-start border border-grid bg-panel p-2 sm:basis-[46%] lg:basis-[31%]"
+                  aria-hidden="true"
+                  key={index}
+                >
+                  <span className="grid aspect-[4/5] place-items-center bg-code">
+                    <Loader className="size-20 max-[520px]:size-16" />
+                  </span>
+                </div>
+              ))}
+              <span className="sr-only" role="status">{t.landing.communityLoading}</span>
+            </>
           ) : images.map((image, index) => {
             const campaignID = image.id.split('/', 1)[0]
             return (
@@ -120,7 +126,7 @@ export function CommunityCarousel() {
                 aria-label={t.landing.communityAlt(index + 1)}
                 key={image.id}
               >
-                <span className={`${skeletonClass} grid aspect-[4/5] place-items-center overflow-hidden bg-code`}>
+                <span className="grid aspect-[4/5] place-items-center overflow-hidden bg-code">
                   <img
                     className="block size-full object-contain transition-transform duration-200 group-hover:scale-[1.015]"
                     src={image.url}

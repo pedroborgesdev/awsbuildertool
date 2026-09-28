@@ -23,6 +23,8 @@ type PageContent struct {
 	Items      []ContentItem `json:"items"`
 	CTA        string        `json:"cta"`
 	IconIntent string        `json:"iconIntent"`
+	ImageID    string        `json:"imageId"`
+	ImageRole  string        `json:"imageRole"`
 }
 
 type ContentItem struct {
@@ -64,6 +66,8 @@ func (d *CampaignDraft) Normalize() {
 		p.Title = NormalizeText(p.Title)
 		p.Body = NormalizeText(p.Body)
 		p.CTA = NormalizeText(p.CTA)
+		p.ImageID = strings.TrimSpace(p.ImageID)
+		p.ImageRole = strings.ToLower(strings.TrimSpace(p.ImageRole))
 		if p.Items == nil {
 			p.Items = []ContentItem{}
 		}
@@ -131,12 +135,35 @@ func (d CampaignDraft) Validate() error {
 	if len(d.Pages) != d.Brief.PostCount {
 		return fmt.Errorf("expected %d pages; received %d", d.Brief.PostCount, len(d.Pages))
 	}
+	availableImages := map[string]bool{}
+	for _, image := range d.Brief.Images {
+		availableImages[image.ID] = true
+		if image.Analysis.Description == "" {
+			return fmt.Errorf("image %s has not been analyzed", image.ID)
+		}
+	}
+	usedImages := map[string]bool{}
 	for i, p := range d.Pages {
 		if _, ok := Roles[p.Role]; !ok {
 			return fmt.Errorf("page %d: invalid editorial role", i+1)
 		}
 		if !Icons[p.IconIntent] {
 			return fmt.Errorf("page %d: invalid icon", i+1)
+		}
+		if p.ImageID == "" && p.ImageRole != "" {
+			return fmt.Errorf("page %d: imageRole requires imageId", i+1)
+		}
+		if p.ImageID != "" {
+			if !availableImages[p.ImageID] {
+				return fmt.Errorf("page %d: unknown imageId", i+1)
+			}
+			if usedImages[p.ImageID] {
+				return fmt.Errorf("page %d: the same content image cannot be reused", i+1)
+			}
+			if !map[string]bool{"hero": true, "support": true, "background": true, "portrait": true, "evidence": true}[p.ImageRole] {
+				return fmt.Errorf("page %d: invalid imageRole", i+1)
+			}
+			usedImages[p.ImageID] = true
 		}
 		if strings.TrimSpace(p.Title) == "" {
 			return fmt.Errorf("page %d: title is required", i+1)
@@ -200,6 +227,16 @@ func (d CampaignDraft) Validate() error {
 		if ((i == 0 && d.Brief.FirstPageCTA) || (i == len(d.Pages)-1 && d.Brief.LastPageCTA)) && p.CTA == "" {
 			return fmt.Errorf("page %d: CTA is required", i+1)
 		}
+	}
+	if len(usedImages) != len(availableImages) {
+		missing := make([]string, 0, len(availableImages)-len(usedImages))
+		for imageID := range availableImages {
+			if !usedImages[imageID] {
+				missing = append(missing, imageID)
+			}
+		}
+		sort.Strings(missing)
+		return fmt.Errorf("every uploaded image must be assigned exactly once; missing: %s", strings.Join(missing, ", "))
 	}
 	return nil
 }

@@ -11,6 +11,7 @@ type Config struct {
 	HFToken         string
 	HFBaseURL       string
 	HFModel         string
+	HFVisionModel   string
 	HFMaxTokens     int
 	TypeSafeAPIKey  string
 	TypeSafeBaseURL string
@@ -38,6 +39,7 @@ func Load() Config {
 		HFToken:         os.Getenv("HF_TOKEN"),
 		HFBaseURL:       env("HF_BASE_URL", "https://router.huggingface.co/v1"),
 		HFModel:         env("HF_MODEL", "openai/gpt-oss-120b:fastest"),
+		HFVisionModel:   env("HF_VISION_MODEL", "google/gemma-3-12b-it:fastest"),
 		HFMaxTokens:     envInt("HF_MAX_TOKENS", 12000),
 		TypeSafeAPIKey:  os.Getenv("TYPESAFE_API_KEY"),
 		TypeSafeBaseURL: env("TYPESAFE_BASE_URL", "https://api.typesafe.ai/v1/systemone"),

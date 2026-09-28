@@ -36,6 +36,10 @@ type contentGenerator interface {
 	GenerateContent(context.Context, domain.GenerateRequest, string) (domain.CampaignDraft, error)
 }
 
+type imageAnalyzer interface {
+	AnalyzeImages(context.Context, string, []domain.ExternalImage) ([]domain.ExternalImage, error)
+}
+
 type generationRecord struct {
 	status string
 	result *domain.GenerateResponse
@@ -47,6 +51,7 @@ type Server struct {
 	config       config.Config
 	prompt       *prompt.Builder
 	hf           contentGenerator
+	vision       imageAnalyzer
 	jev          *jev.Client
 	render       render.Renderer
 	logger       *logmate.Logger
@@ -60,10 +65,12 @@ func New(cfg config.Config, logger *logmate.Logger) *Server {
 	if err := domain.LoadIcons(cfg.DesignSystemDir); err != nil {
 		logger.Error(fmt.Sprintf("failed to load icon catalog error=%v design_system=%s", err, cfg.DesignSystemDir))
 	}
+	hfClient := hf.NewClient(cfg.HFToken, cfg.HFBaseURL, cfg.HFMaxTokens, 0, cfg.MockHF)
 	server := &Server{
 		config:      cfg,
 		prompt:      prompt.NewBuilder(cfg.DesignSystemDir),
-		hf:          hf.NewClient(cfg.HFToken, cfg.HFBaseURL, cfg.HFMaxTokens, 0, cfg.MockHF),
+		hf:          hfClient,
+		vision:      hfClient,
 		jev:         jev.NewClient(cfg.TypeSafeAPIKey, cfg.TypeSafeBaseURL, cfg.TypeSafeModel, 0),
 		render:      render.NewRunner(cfg.GeneratedDir, cfg.DesignSystemDir, cfg.PythonBin),
 		logger:      logger,
@@ -146,6 +153,16 @@ func (s *Server) createDraft(ctx context.Context, request domain.GenerateRequest
 	if !s.config.MockHF && s.iconSelector() == "jev" && !s.jev.Configured() {
 		return domain.CampaignDraft{}, "", errors.New("configure TYPESAFE_API_KEY to select icons with Jev")
 	}
+	if len(request.Images) > 0 {
+		if s.vision == nil {
+			return domain.CampaignDraft{}, "", errors.New("visual analysis is unavailable")
+		}
+		images, err := s.vision.AnalyzeImages(ctx, s.config.HFVisionModel, request.Images)
+		if err != nil {
+			return domain.CampaignDraft{}, "", fmt.Errorf("visual analysis: %w", err)
+		}
+		request.Images = images
+	}
 	built, err := s.prompt.Build(request)
 	if err != nil {
 		return domain.CampaignDraft{}, "", err
@@ -160,6 +177,7 @@ func (s *Server) createDraft(ctx context.Context, request domain.GenerateRequest
 		return draft, built, fmt.Errorf("text generation: %w", err)
 	}
 	s.logger.Debug(fmt.Sprintf("stage finished stage=text generation duration=%s pages=%d", time.Since(started), len(draft.Pages)))
+	s.logger.Debug(fmt.Sprintf("image assignments %s", summarizeImageAssignments(draft)))
 	if !s.config.MockHF {
 		if err := s.selectIcons(ctx, &draft); err != nil {
 			return draft, built, fmt.Errorf("icon selection: %w", err)
@@ -279,6 +297,22 @@ func summarizeIcons(icons map[string]string) string {
 		return value[:500] + "…"
 	}
 	return value
+}
+
+func summarizeImageAssignments(draft domain.CampaignDraft) string {
+	if len(draft.Brief.Images) == 0 {
+		return "none"
+	}
+	assignments := make([]string, 0, len(draft.Pages))
+	for pageIndex, page := range draft.Pages {
+		if page.ImageID != "" {
+			assignments = append(assignments, fmt.Sprintf("%s=page-%d(%s)", page.ImageID, pageIndex+1, page.ImageRole))
+		}
+	}
+	if len(assignments) == 0 {
+		return "uploaded-but-unassigned"
+	}
+	return strings.Join(assignments, " ")
 }
 
 func (s *Server) iconSelector() string {
@@ -404,6 +438,13 @@ func (s *Server) runGeneration(ctx context.Context, request domain.GenerateReque
 		var err error
 		if len(draft.Pages) == 0 {
 			draft, built, err = s.createDraft(ctx, request, retryFeedback)
+			if err == nil {
+				request = draft.Brief
+			} else {
+				// A draft that failed validation must be regenerated. Keeping its pages
+				// would incorrectly route the next attempt straight to rendering.
+				draft = domain.CampaignDraft{}
+			}
 		} else {
 			// Keep the editorial draft stable while trying a fresh visual composition.
 			// Icon selection may be repeated, but content generation is not.
@@ -467,7 +508,7 @@ func (s *Server) runGeneration(ctx context.Context, request domain.GenerateReque
 }
 func (s *Server) renderContent(w http.ResponseWriter, r *http.Request) {
 	var draft domain.CampaignDraft
-	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, 30<<20)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&draft); err != nil {
@@ -619,7 +660,7 @@ func (s *Server) generatedFile(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) decodeRequest(w http.ResponseWriter, r *http.Request) (domain.GenerateRequest, bool) {
 	var request domain.GenerateRequest
-	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, 30<<20)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&request); err != nil {

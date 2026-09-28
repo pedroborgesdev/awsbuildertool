@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/logo.png" alt="Builder Tool" width="84">
+  <img src="web/public/logo.png" alt="Builder Tool" width="84">
 </p>
 
 <h1 align="center">Builder Tool</h1>
@@ -49,7 +49,7 @@ You do not assemble a layout. You answer a short brief, and the pages come back 
 
 <img src="docs/images/03-how-it-works.png" alt="Channels where a post can go, and the five steps of a guided brief." width="100%">
 
-1. **Describe the idea.** Topic, goal, who should care, and the context the post has to get right.
+1. **Describe the idea.** Topic, goal, who should care, context, and up to five optional images from your device.
 2. **Pick a size.** A resolution recommended for a channel, how much to say, and how many pages.
 3. **Choose the look.** Color, light or dark pages, and the language of the post itself.
 4. **Add your name,** if you want it in the footer. It stays on this device for the next post.
@@ -66,6 +66,8 @@ The set below is a real run on the live site: a post about the path from a commi
 ### 1. What you are sharing
 
 Start with the point of the post. The topic, what someone should take from it, and who it is for. Context is the room where the facts live: what must be included, what must be left out, and the sequence the pages should follow.
+
+You can also add up to five JPEG, PNG, or WebP images directly from your device. Each file is normalized locally, analyzed as an original plus a labeled 3 × 2 grid, and described for the editorial model. The editorial model may assign a relevant image to one page; the layout engine then chooses its grid dimensions and crop while preserving the analyzed focal rectangle. Images are optional and are never reused across pages automatically.
 
 <img src="docs/images/04-idea.png" alt="Idea step filled in: from a commit to production on AWS, with a long context." width="100%">
 

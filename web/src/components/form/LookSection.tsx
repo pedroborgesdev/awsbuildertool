@@ -4,6 +4,7 @@ import { fieldLabelClass, panelGridClass } from '../../styles'
 import { AppearanceOption } from '../ui/AppearanceOption'
 import { ChoiceCard } from '../ui/ChoiceCard'
 import { ThemeOption } from '../ui/ThemeOption'
+import { Toggle } from '../ui/Toggle'
 import type { GenerateRequest } from '../../types'
 
 interface LookSectionProps {
@@ -55,6 +56,11 @@ export function LookSection({ form, onUpdate }: LookSectionProps) {
             />
           ))}
         </div>
+      </fieldset>
+      <fieldset>
+        <legend className={`${fieldLabelClass} mb-3`}>{t.look.grid}</legend>
+        <Toggle checked={form.showGrid} onChange={(value) => onUpdate('showGrid', value)} label={t.look.gridToggle} />
+        <p className="mt-3 text-sm leading-relaxed text-muted-light">{t.look.gridNote}</p>
       </fieldset>
     </div>
   )

@@ -8,7 +8,7 @@ import { CreatorPage } from './components/pages/CreatorPage'
 import { LandingPage } from './components/pages/LandingPage'
 import { ResultPage } from './components/pages/ResultPage'
 import { PhotoCropper } from './components/photo/PhotoCropper'
-import type { AppConfig, AppView, GenerateRequest, GenerateResponse } from './types'
+import type { AppConfig, AppView, ExternalImage, GenerateRequest, GenerateResponse } from './types'
 
 const historyViewKey = 'builderToolView'
 
@@ -22,6 +22,31 @@ function localizedDefaults(localeDefaults: { audience: string; tone: string; lan
     tone: localeDefaults.tone,
     language: localeDefaults.language,
   }
+}
+
+async function normalizeContentImage(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file)
+  const maxSide = 1800
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+  const width = Math.max(64, Math.round(bitmap.width * scale))
+  const height = Math.max(64, Math.round(bitmap.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Canvas is unavailable.')
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, width, height)
+  context.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close()
+  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Image conversion failed.')), 'image/jpeg', .88))
+  if (blob.size > 3 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE')
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('Image conversion failed.'))
+    reader.readAsDataURL(blob)
+  })
 }
 
 function App() {
@@ -38,6 +63,7 @@ function App() {
   const [result, setResult] = useState<GenerateResponse | null>(null)
   const [artifactIsStale, setArtifactIsStale] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [imagesBusy, setImagesBusy] = useState(false)
   const [error, setError] = useState('')
   const [cropSource, setCropSource] = useState<string | null>(null)
 
@@ -101,6 +127,39 @@ function App() {
     reader.readAsDataURL(file)
   }
 
+  async function importContentImages(files: File[]) {
+    if (!files.length) return
+    if (form.images.length + files.length > 5) {
+      setError(t.errors.imagesLimit)
+      return
+    }
+    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))) {
+      setError(t.errors.imagesType)
+      return
+    }
+    setImagesBusy(true)
+    try {
+      const used = new Set(form.images.map((image) => image.id))
+      const ids = Array.from({ length: 5 }, (_, index) => `image-${index + 1}`).filter((id) => !used.has(id))
+      const prepared: ExternalImage[] = []
+      for (let index = 0; index < files.length; index += 1) {
+        prepared.push({
+          id: ids[index],
+          name: files[index].name,
+          dataUrl: await normalizeContentImage(files[index]),
+          analysis: { description: '', subjects: [], mood: '', composition: '', relevantCells: [], focusRect: { x: 0, y: 0, width: 0, height: 0 }, safeTextAreas: [], cropTolerance: '', confidence: 0 },
+        })
+      }
+      const nextImages = [...form.images, ...prepared]
+      update('images', nextImages)
+      if (form.postCount < nextImages.length) update('postCount', nextImages.length)
+    } catch (reason) {
+      setError(reason instanceof Error && reason.message === 'IMAGE_TOO_LARGE' ? t.errors.imagesSize : t.errors.imagesOpen)
+    } finally {
+      setImagesBusy(false)
+    }
+  }
+
   function openCreator() {
     if (!canCreatePosts(config)) return
     setError('')
@@ -156,11 +215,14 @@ function App() {
           form={form}
           config={config}
           step={step}
-          busy={busy}
+          busy={busy || imagesBusy}
           error={error}
           onStepChange={setStep}
           onUpdate={update}
           onImportPhoto={importPhoto}
+          onImportContentImages={(files) => { void importContentImages(files) }}
+          onRemoveContentImage={(id) => update('images', form.images.filter((image) => image.id !== id))}
+          onDismissError={() => setError('')}
           onExit={returnHome}
           onSubmit={handleSubmit}
         />

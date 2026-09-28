@@ -53,7 +53,7 @@ export function SiteHeader({
           className="flex cursor-pointer min-h-11 w-auto max-w-[min(320px,68vw)] items-center gap-2.5 border-0 bg-transparent py-1 text-left max-[520px]:gap-2"
           onClick={onHome}
         >
-          <img className="block size-9 object-cover max-[520px]:size-8" src="/logo.png" alt="" />
+          <img className="block size-9 object-contain max-[520px]:size-8" src="/logo.png" alt="" />
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="text-lg leading-[1.1] font-extrabold tracking-[-.03em] text-white max-[520px]:text-[15px]">{t.brand.title}</span>
             <span className="text-xs leading-[1.2] font-bold tracking-[.01em] text-muted-light max-[520px]:text-[10px]">{t.brand.subtitle}</span>

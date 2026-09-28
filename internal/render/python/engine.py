@@ -18,7 +18,7 @@ import unicodedata
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
 
-VERSION = "5.2.0"
+VERSION = "5.5.0"
 FORMATS = {
     "instagram-portrait": (1080, 1350), "instagram-square": (1080, 1080),
     "instagram-story": (1080, 1920), "linkedin-portrait": (1080, 1350),
@@ -28,7 +28,15 @@ FORMATS = {
 COLORS = {"ink": "#161D26", "paper": "#F8F8FA", "white": "#FFFFFF", "line_dark": "#2B3542",
           "line_light": "#DEDEE3", "green": "#00E582", "pink": "#FF57E9", "blue": "#42B4FF",
           "purple": "#AD5CFF", "orange": "#FF9900"}
-GRID_MODULES = {1080: 120, 1200: 120, 1600: 100, 1920: 120}
+GRID_MODULES = {1080: 120, 1200: 100, 1600: 100, 1920: 120}
+
+
+def frame_geometry(height, module):
+    """Return header/footer heights that leave only complete square rows."""
+    header=max(40,round(module*.4))
+    footer=max(60,round(module*.6))
+    header+=(height-header-footer)%module
+    return header,footer
 
 
 def normalize(value):
@@ -166,7 +174,7 @@ def icon_mask(design, intent):
 
 
 class Page:
-    def __init__(self, width, height, dark, design, number, accent_name=None):
+    def __init__(self, width, height, dark, design, number, accent_name=None, show_grid=True):
         self.w, self.h, self.dark, self.design, self.number = width, height, dark, design, number
         # Coarse modular grid: nine columns at the primary 1080px formats.
         # 1920×1080 uses the same 120px cell, which lands on 16 square columns.
@@ -179,14 +187,19 @@ class Page:
         self.line = COLORS["line_dark" if dark else "line_light"]
         self.accent_name = accent_name or ["green", "pink", "blue", "purple", "orange"][(number-1)%5]
         self.accent = COLORS[self.accent_name]
+        self.show_grid = show_grid
         self.image = Image.new("RGB", (width, height), self.bg)
         self.draw = ImageDraw.Draw(self.image)
         self.regions = {"canvas": {"box": (0, 0, width, height), "parent": None, "kind": "canvas"}}
         self.texts, self.squares = [], []
+        self.grid_line_width = 2
         self.grid_x = list(range(0, width+1, self.g))
         self.grid_y = list(range(0, height+1, self.g))
-        for x in self.grid_x: self.draw.line((x, 0, x, height-1), fill=self.line, width=2)
-        for y in self.grid_y: self.draw.line((0, y, width-1, y), fill=self.line, width=2)
+        if self.show_grid:
+            for x in self.grid_x:
+                if 0<x<width: self.draw.line((x, 0, x, height-1), fill=self.line, width=self.grid_line_width)
+            for y in self.grid_y:
+                if 0<y<height: self.draw.line((0, y, width-1, y), fill=self.line, width=self.grid_line_width)
 
     def reserve(self, name, box, parent="canvas", kind="region"):
         box = tuple(round(v) for v in box)
@@ -200,15 +213,27 @@ class Page:
         self.regions[name] = {"box": box, "parent": parent, "kind": kind}
         return box
 
-    def panel(self, name, box, parent="canvas", fill=None, square=False, bordered=True):
+    def panel(self, name, box, parent="canvas", fill=None, square=False, bordered=False):
         if square:
             side=round(box[2]-box[0])
             box=(round(box[0]),round(box[1]),round(box[0])+side,round(box[1])+side)
         box = self.reserve(name, box, parent)
         if square: self.squares.append(box)
-        # Coordinates are half-open, including in paint operations.
-        self.draw.rectangle((box[0], box[1], box[2]-1, box[3]-1), fill=fill or self.bg,
-                            outline=self.line if bordered else None,width=2 if bordered else 0)
+        # Components do not own an outline. Their fill starts after the existing
+        # grid stroke, so adjacent components share one two-pixel divider instead
+        # of stacking a component border on top of the modular grid. Header and
+        # footer are the only callers that explicitly request a bordered panel.
+        if bordered and self.show_grid:
+            self.draw.rectangle((box[0],box[1],box[2]-1,box[3]-1),fill=fill or self.bg)
+            if box[0]>0: self.draw.line((box[0],box[1],box[0],box[3]-1),fill=self.line,width=self.grid_line_width)
+            if box[1]>0: self.draw.line((box[0],box[1],box[2]-1,box[1]),fill=self.line,width=self.grid_line_width)
+            if box[2]<self.w: self.draw.line((box[2],box[1],box[2],box[3]-1),fill=self.line,width=self.grid_line_width)
+            if box[3]<self.h: self.draw.line((box[0],box[3],box[2]-1,box[3]),fill=self.line,width=self.grid_line_width)
+        else:
+            inset=self.grid_line_width if self.show_grid else 0
+            left=box[0]+(inset if box[0]>0 else 0)
+            top=box[1]+(inset if box[1]>0 else 0)
+            self.draw.rectangle((left,top,box[2]-1,box[3]-1),fill=fill or self.bg)
         return box
 
     def text(self, name, value, box, parent, preferred=32, minimum=22, bold=False, color=None, align="left", valign="top"):
@@ -298,6 +323,14 @@ class Page:
                 "compositionBias":getattr(self,"composition_bias","balanced"),
                 "titleIconMode":getattr(self,"title_icon_mode","attached"),
                 "componentRules":getattr(self,"component_rules",[]),
+                "imageCrop":getattr(self,"image_crop",None),
+                "showGrid":self.show_grid,
+                "headerBordered":getattr(self,"header_bordered",False),
+                "headerHeight":getattr(self,"header_height",0),
+                "contentTop":getattr(self,"content_top",0),
+                "footerBordered":getattr(self,"footer_bordered",False),
+                "footerHeight":getattr(self,"footer_height",0),
+                "footerContentAxis":getattr(self,"footer_content_axis",0),
                 "gridX":self.grid_x,"gridY":self.grid_y,"regions":self.regions,"texts":self.texts,"squares":self.squares}
 
     def text_height(self, value, width, size, bold=False):
@@ -400,7 +433,7 @@ def candidate_specs(content, size, seed, style, appearance="both"):
                       "componentGap":1 if rng.random()<.62 else 0,
                       "titlePosition":"top",
                       "compositionBias":rng.choice(("balanced","compact","split-left","split-right","edge-frame")),
-                      "visualTreatment":rng.choice(("accent-field","neutral-field","accent-outline")),
+                      "visualTreatment":rng.choice(("accent-field","neutral-field")),
                       "chartType":"pie" if rng.random()<.5 else "bar",
                       "dark":True if appearance=="dark" else False if appearance=="light" else bool(rng.randrange(2)),
                       "accent":accent,"colorMode":style["mode"],"itemColors":colors,
@@ -432,14 +465,14 @@ def typography(content):
             "itemTitle":24,"itemTitleMin":18,"itemText":18,"itemTextMin":15}
 
 
-def block_options(p, content, cols, rows, spec, rng):
+def block_options(p, content, cols, rows, spec, rng, external_image=None):
     """Measure every semantic block and return all cell rectangles where it fits."""
     pad=p.g/4; item_pad=min(pad,20); type_scale=typography(content)
     blocks=[]
     title=presentation_break(content["title"],rng,False)
     eyebrow=normalize(content.get("eyebrow",""))
     title_options=[]
-    uses_visual_mass=not content.get("items") and content.get("role") in ("cover","manifesto","cta")
+    uses_visual_mass=external_image is None and not content.get("items") and content.get("role") in ("cover","manifesto","cta")
     widths=list(range(min(cols,3),cols+1)); rng.shuffle(widths)
     for width in widths:
         if uses_visual_mass or spec.get("titleIconMode")=="none": icon_cols=0
@@ -563,10 +596,35 @@ def block_options(p, content, cols, rows, spec, rng):
                 if height+1<=rows: options.append((width,height+1,meta))
         blocks.append({"key":f"item-{index+1}","kind":"item","index":index,"options":options})
 
+    if external_image is not None:
+        image_options=[]
+        source_ratio=external_image["image"].width/external_image["image"].height
+        focus=external_image["analysis"].get("focusRect",{})
+        focus_ratio=max(.01,float(focus.get("width",1)))/max(.01,float(focus.get("height",1)))
+        image_role=content.get("imageRole","support")
+        minimum_width=4
+        minimum_height=4 if image_role in ("hero","background") else 3
+        min_area=16 if image_role in ("hero","background") else 12
+        max_area=math.ceil(cols*rows*(.58 if image_role in ("hero","background") else .44))
+        for width in range(minimum_width,cols+1):
+            for height in range(minimum_height,rows+1):
+                area=width*height
+                if area<min_area or area>max_area: continue
+                ratio=width/height
+                if ratio<.3 or ratio>3.2: continue
+                ratio_penalty=abs(math.log(max(.01,ratio/source_ratio)))*2.4
+                focus_penalty=abs(math.log(max(.01,ratio/focus_ratio)))*1.1
+                role_penalty=0
+                if image_role=="portrait" and ratio>1: role_penalty+=(ratio-1)*5
+                if image_role=="hero": role_penalty+=max(0,12-area)*.6
+                image_options.append((width,height,{"component":"photograph","cropPenalty":ratio_penalty+focus_penalty+role_penalty}))
+        rng.shuffle(image_options)
+        blocks.append({"key":"content-image","kind":"photograph","options":image_options})
+
     # Pages without repeated items gain a first-class visual mass. It is not a
     # layout template: dimensions and placement are searched on the same grid as
     # text. This can stand for a photograph, a large pixel icon or a color field.
-    if not item_metas and content.get("role") in ("cover","manifesto","cta"):
+    if external_image is None and not item_metas and content.get("role") in ("cover","manifesto","cta"):
         mass_options=[]
         max_width=max(2,min(cols,math.ceil(cols*.56)))
         for width in range(2,max_width+1):
@@ -595,18 +653,19 @@ def pack_blocks(blocks, cols, rows, module, gap, title_position, rng, compositio
         if at==len(order): return True
         block=order[at]
         options=block["options"][:]
-        preferred_ratio={"title":2.5,"subtitle":3.2,"item":2.2,"item-group":1.5,"visual":1.8,"visual-mass":.85}[block["kind"]]
+        preferred_ratio={"title":2.5,"subtitle":3.2,"item":2.2,"item-group":1.5,"visual":1.8,"visual-mass":.85,"photograph":1.15}[block["kind"]]
         # Physical readability targets remain stable when the number of grid
         # columns changes; text measurement still makes the final decision.
-        minimum_pixels={"title":500,"subtitle":430,"item":430,"item-group":500,"visual":600,"visual-mass":240}[block["kind"]]
+        minimum_pixels={"title":500,"subtitle":430,"item":430,"item-group":500,"visual":600,"visual-mass":240,"photograph":240}[block["kind"]]
         minimum_width=min(cols,math.ceil(minimum_pixels/module))
-        target_pixels={"title":190000,"subtitle":115000,"item":82000,"item-group":205000,"visual":310000,"visual-mass":330000}[block["kind"]]
+        target_pixels={"title":190000,"subtitle":115000,"item":82000,"item-group":205000,"visual":310000,"visual-mass":330000,"photograph":430000}[block["kind"]]
         target_area=target_pixels/(module*module)
         # Favor readable proportions, but keep seeded variation among near-equal fits.
         options.sort(key=lambda option:(abs(option[0]*option[1]-target_area)*.42
                                         +abs(option[0]/option[1]-preferred_ratio)*5
                                         +(28 if option[0]<minimum_width else 0)
                                         +option[2].get("patternPenalty",0)
+                                        +option[2].get("cropPenalty",0)
                                         +rng.random()*5))
         # Keep enough geometries for strict top/bottom composition. Compact
         # multi-column lists can be less ratio-efficient but are sometimes the
@@ -638,7 +697,7 @@ def pack_blocks(blocks, cols, rows, module, gap, title_position, rng, compositio
             def position_score(pos):
                 x,y=pos
                 cells={(xx,yy) for yy in range(y,y+height) for xx in range(x,x+width)}
-                if block["kind"]=="visual-mass":
+                if block["kind"] in ("visual-mass","photograph"):
                     edge_distance=min(x,cols-(x+width))
                     desired_side=0 if composition_bias=="split-left" else cols-width if composition_bias=="split-right" else None
                     side_cost=abs(x-desired_side)*1.8 if desired_side is not None else edge_distance*.8
@@ -731,10 +790,10 @@ def render_visual_component(p, spec, content, key, meta, box):
         total=sum(values); angle=-90
         for entry,color,fill,value in ordered:
             end=angle+360*value/total
-            p.draw.pieslice(tuple(round(v) for v in pie),angle,end,fill=fill,outline=p.bg,width=2)
+            p.draw.pieslice(tuple(round(v) for v in pie),angle,end,fill=fill)
             angle=end
         hole=side*.43; cx=(pie[0]+pie[2])/2; cy=(pie[1]+pie[3])/2
-        p.draw.ellipse((cx-hole/2,cy-hole/2,cx+hole/2,cy+hole/2),fill=p.bg,outline=p.line,width=2)
+        p.draw.ellipse((cx-hole/2,cy-hole/2,cx+hole/2,cy+hole/2),fill=p.bg)
         legend_x=pie[2]+pad; row_h=(h-2*pad)/len(items)
         for i,(entry,color,fill,value) in enumerate(ordered):
             top=y1+pad+i*row_h; marker=max(10,min(18,row_h*.28))
@@ -769,7 +828,7 @@ def render_visual_component(p, spec, content, key, meta, box):
                                 (back[0]-normal[0]*arrow,back[1]-normal[1]*arrow)),fill=p.accent)
         for i,(entry,color,(cx,cy)) in enumerate(zip(items,colors,points)):
             icon_box=(cx-icon_side/2,cy-icon_side/2,cx+icon_side/2,cy+icon_side/2)
-            p.draw.rectangle(tuple(round(v) for v in icon_box),fill=p.bg,outline=COLORS[color],width=3)
+            p.draw.rectangle(tuple(round(v) for v in icon_box),fill=p.bg)
             p.icon(f"{key}-icon-{i+1}",item_icon(entry["item"],content["iconIntent"]),icon_box,key,color)
             label=entry["title"]+(" — "+entry["text"] if entry["text"] else "")
             if horizontal:
@@ -789,7 +848,7 @@ def render_visual_component(p, spec, content, key, meta, box):
         icon_side=min(p.g*.72,cell_w*.34,h*.22)
         for i,(entry,color) in enumerate(zip(items,colors)):
             left=x1+pad+i*cell_w; right=x1+pad+(i+1)*cell_w-(6 if i<count-1 else 0)
-            p.draw.rectangle((round(left),round(y1+pad),round(right),round(y2-pad)),fill=p.bg,outline=COLORS[color],width=3)
+            p.draw.rectangle((round(left),round(y1+pad),round(right),round(y2-pad)),fill=p.bg)
             icon_box=(left+(right-left-icon_side)/2,y1+pad*1.35,left+(right-left+icon_side)/2,y1+pad*1.35+icon_side)
             p.icon(f"{key}-icon-{i+1}",item_icon(entry["item"],content["iconIntent"]),icon_box,key,color)
             title_top=icon_box[3]+pad*.45
@@ -806,7 +865,7 @@ def render_visual_component(p, spec, content, key, meta, box):
         col=i%cols; row=i//cols
         left=x1+pad+col*cell_w; top=y1+pad+row*cell_h
         card=(left,top,left+cell_w-6,top+cell_h-6)
-        p.draw.rectangle(tuple(round(v) for v in card),fill=p.bg,outline=COLORS[color],width=3)
+        p.draw.rectangle(tuple(round(v) for v in card),fill=p.bg)
         value=entry["item"].get("value",0)
         metric=f"{value}%" if value else str(i+1).zfill(2)
         p.text(f"{key}-value-{i+1}",metric,(left+10,top+8,left+cell_w-16,top+cell_h*.48),key,36,22,True,COLORS[color])
@@ -825,6 +884,7 @@ def render_component_description(p, key, value, box, pad, type_scale):
 
 def render_decorative_branches(p, spec, occupied, cols, rows, rng):
     """Grow orthogonal trees, not just lines, without entering content regions."""
+    content_top=getattr(p,"content_top",p.g)
     free={(x,y) for y in range(rows) for x in range(cols) if (x,y) not in occupied}
     if len(free)<2: return []
     neighbors=lambda cell: ((cell[0]-1,cell[1]),(cell[0]+1,cell[1]),(cell[0],cell[1]-1),(cell[0],cell[1]+1))
@@ -854,7 +914,7 @@ def render_decorative_branches(p, spec, occupied, cols, rows, rng):
     # Keep each selected origin available for its own tree. Without this guard,
     # the first tree can swallow a neighbouring nucleus before it starts.
     reserved_roots=set(chosen_roots)
-    records=[]; remaining=target
+    records=[]; painted_cells=set(); remaining=target
     for cluster,root in enumerate(chosen_roots):
         clusters_left=len(chosen_roots)-cluster
         desired=max(2,remaining//clusters_left)
@@ -902,10 +962,10 @@ def render_decorative_branches(p, spec, occupied, cols, rows, rng):
                 gradient_image=source.convert("RGB").resize(((max_x-min_x)*p.g,(max_y-min_y)*p.g),Image.Resampling.LANCZOS)
         for step,(cell_x,cell_y) in enumerate(branch):
             name=f"decor-branch-{cluster+1}-{step+1}"
-            box=(cell_x*p.g,p.g+cell_y*p.g,(cell_x+1)*p.g,p.g+(cell_y+1)*p.g)
+            box=(cell_x*p.g,content_top+cell_y*p.g,(cell_x+1)*p.g,content_top+(cell_y+1)*p.g)
+            box=p.reserve(name,box,"content","asset")
+            p.squares.append(box)
             if gradient:
-                box=p.reserve(name,box,"content","asset")
-                p.squares.append(box)
                 crop_x=(cell_x-gradient_bounds["column"])*p.g
                 crop_y=(cell_y-gradient_bounds["row"])*p.g
                 patch=gradient_image.crop((crop_x,crop_y,crop_x+p.g,crop_y+p.g))
@@ -913,12 +973,26 @@ def render_decorative_branches(p, spec, occupied, cols, rows, rng):
                 color=spec["gradient"]
             else:
                 color=branch_color if keep_color or step==0 else ACCENTS[rng.randrange(len(ACCENTS))]
-                p.panel(name,box,"content",fill=COLORS[color],square=True,bordered=False)
+                p.draw.rectangle((box[0],box[1],box[2]-1,box[3]-1),fill=COLORS[color])
+            painted_cells.add((cell_x,cell_y))
             parent=parents[(cell_x,cell_y)]
             records.append({"name":name,"cluster":cluster+1,"step":step+1,"column":cell_x,"row":cell_y,
                             "parent":None if parent is None else {"column":parent[0],"row":parent[1]},
                             "type":"gradient" if gradient else "solid","color":color,
                             "gradientBounds":gradient_bounds})
+    # Adjacent color/gradient cells form one uninterrupted field. Restore the
+    # modular grid only on edges that touch neutral page space.
+    if p.show_grid:
+        for cell_x,cell_y in painted_cells:
+            x1=cell_x*p.g; y1=content_top+cell_y*p.g; x2=x1+p.g; y2=y1+p.g
+            if x1>0 and (cell_x-1,cell_y) not in painted_cells:
+                p.draw.line((x1,y1,x1,y2),fill=p.line,width=p.grid_line_width)
+            if (cell_x+1,cell_y) not in painted_cells:
+                p.draw.line((x2,y1,x2,y2),fill=p.line,width=p.grid_line_width)
+            if (cell_x,cell_y-1) not in painted_cells:
+                p.draw.line((x1,y1,x2,y1),fill=p.line,width=p.grid_line_width)
+            if (cell_x,cell_y+1) not in painted_cells:
+                p.draw.line((x1,y2,x2,y2),fill=p.line,width=p.grid_line_width)
     return records
 
 
@@ -935,38 +1009,109 @@ def decode_profile_photo(value):
         raise ValueError("Invalid footer photo; crop it again at 1080x1080") from error
 
 
-def render_candidate(content,index,total,size,design,spec,about=None,profile_photo=None):
-    p=Page(*size,spec["dark"],design,index+1,spec["accent"])
+def decode_external_images(images):
+    decoded={}
+    for item in images or []:
+        try:
+            header,encoded=item["dataUrl"].split(",",1)
+            if header not in ("data:image/jpeg;base64","data:image/png;base64"): raise ValueError
+            with Image.open(io.BytesIO(base64.b64decode(encoded,validate=True))) as source:
+                source.load()
+                if source.width<64 or source.height<64 or source.width>2048 or source.height>2048 or source.width*source.height>4000000: raise ValueError
+                decoded[item["id"]]={"image":source.convert("RGB"),"analysis":item["analysis"],"name":item.get("name","")}
+        except Exception as error:
+            raise ValueError(f"Invalid content image: {item.get('id','unknown')}") from error
+    return decoded
+
+
+def render_external_image(p, external_image, box, parent):
+    box=p.reserve("content-image-asset",box,parent,"asset")
+    inset=p.grid_line_width if p.show_grid else 0
+    paste_x=box[0]+(inset if box[0]>0 else 0)
+    paste_y=box[1]+(inset if box[1]>0 else 0)
+    width,height=box[2]-paste_x,box[3]-paste_y
+    source=external_image["image"]
+    target_ratio=width/height
+    if source.width/source.height>=target_ratio:
+        crop_h=source.height; crop_w=crop_h*target_ratio
+    else:
+        crop_w=source.width; crop_h=crop_w/target_ratio
+    focus=external_image["analysis"].get("focusRect",{})
+    focus_x=float(focus.get("x",0)); focus_y=float(focus.get("y",0))
+    focus_w=float(focus.get("width",1)); focus_h=float(focus.get("height",1))
+    cells=external_image["analysis"].get("relevantCells",[])
+    parsed=[(ord(cell[1])-ord("1"),ord(cell[0])-ord("A")) for cell in cells
+            if isinstance(cell,str) and len(cell)==2 and cell[0] in "AB" and cell[1] in "123"]
+    if parsed:
+        cell_x=min(col for col,row in parsed)/3; cell_y=min(row for col,row in parsed)/2
+        cell_right=(max(col for col,row in parsed)+1)/3; cell_bottom=(max(row for col,row in parsed)+1)/2
+        focus_right=max(focus_x+focus_w,cell_right); focus_bottom=max(focus_y+focus_h,cell_bottom)
+        focus_x=min(focus_x,cell_x); focus_y=min(focus_y,cell_y)
+        focus_w=focus_right-focus_x; focus_h=focus_bottom-focus_y
+    fx=focus_x*source.width; fy=focus_y*source.height
+    fw=focus_w*source.width; fh=focus_h*source.height
+    mode="cover"
+    center_x=fx+fw/2; center_y=fy+fh/2
+    left=max(0,min(source.width-crop_w,center_x-crop_w/2))
+    top=max(0,min(source.height-crop_h,center_y-crop_h/2))
+    if fw<=crop_w:
+        left=max(0,min(left,fx)); left=min(source.width-crop_w,max(left,fx+fw-crop_w))
+    if fh<=crop_h:
+        top=max(0,min(top,fy)); top=min(source.height-crop_h,max(top,fy+fh-crop_h))
+    crop=(round(left),round(top),round(left+crop_w),round(top+crop_h))
+    rendered=source.crop(crop).resize((width,height),Image.Resampling.LANCZOS)
+    p.image.paste(rendered,(paste_x,paste_y))
+    p.image_crop={"source":external_image.get("name",""),"box":box,"sourceCrop":crop,"mode":mode,
+                  "focusRect":focus,"relevantCells":cells}
+
+
+def render_candidate(content,index,total,size,design,spec,about=None,profile_photo=None,external_image=None,show_grid=True):
+    p=Page(*size,spec["dark"],design,index+1,spec["accent"],show_grid)
     p.color_mode=spec["colorMode"]
     p.item_colors=spec["itemColors"]
     w,h,g=p.w,p.h,p.g; type_scale=typography(content)
     pad=g/4
-    header=p.panel("header",(0,0,w,g))
-    brand_width=min(4*g,w*.48)
-    p.asset("brand",f"assets/brand/lockup-{'dark' if p.dark else 'light'}.png",(pad,g*.2,brand_width-pad,g*.8),"header")
+    p.header_bordered=False
+    header_height,footer_height=frame_geometry(h,g)
+    p.header_height=header_height
+    p.content_top=header_height
+    header=p.panel("header",(0,0,w,header_height),bordered=False)
+    brand_width=min(3.5*g,w*.42)
+    brand_height=min(round(g*.28),round(header_height*.6))
+    brand_top=round((header_height-brand_height)/2)
+    p.asset("brand",f"assets/brand/lockup-{'dark' if p.dark else 'light'}.png",(pad,brand_top,brand_width-pad,brand_top+brand_height),"header")
 
-    footer_y=(h//g-1)*g
-    if footer_y<=g: raise ValueError("Format does not have enough rows")
-    footer=p.panel("footer",(0,footer_y,w,h))
+    footer_y=h-footer_height
+    if footer_y<=header_height: raise ValueError("Format does not have enough rows")
+    footer=p.panel("footer",(0,footer_y,w,h),bordered=True)
+    p.footer_bordered=p.show_grid
+    p.footer_height=footer_height
     about=about or {}
     use_about=bool(about.get("enabled"))
-    footer_height=h-footer_y
-    footer_pad=max(10,round(min(g,footer_height)*.12))
+    show_page_number=total>1
+    footer_pad=max(7,round(footer_height*.11))
+    footer_center=footer_y+footer_height/2
+    p.footer_content_axis=round(footer_center)
     logo_variant="dark" if p.dark else "light"
-    logo_width=min(round(g*.82),110)
-    counter_width=min(round(g*1.35),170)
-    counter_top=footer_y+round((footer_height-22)/2)
-    counter_bottom=min(h-footer_pad,counter_top+30)
+    logo_width=min(round(g*.72),96)
+    logo_height=footer_height-2*footer_pad
+    counter_width=min(round(g*1.28),160)
+    counter_height=min(28,footer_height-2*footer_pad)
+    counter_top=round(footer_center-counter_height/2)
+    counter_bottom=counter_top+counter_height
     if use_about:
         counter_left=round((w-counter_width)/2)
         counter_box=(counter_left,counter_top,counter_left+counter_width,counter_bottom)
-        logo_box=(w-footer_pad-logo_width,footer_y+footer_pad,w-footer_pad,h-footer_pad)
+        logo_top=round(footer_center-logo_height/2)
+        logo_box=(w-footer_pad-logo_width,logo_top,w-footer_pad,logo_top+logo_height)
         p.asset("footer-aws-logo",f"assets/brand/aws-mark-{logo_variant}.png",logo_box,"footer")
-        p.text("page-number",f"{index+1:02d} / {total:02d}",counter_box,"footer",18,13,True,align="center")
+        if show_page_number:
+            p.text("page-number",f"{index+1:02d} / {total:02d}",counter_box,"footer",18,13,True,align="center")
         cursor=footer_pad
         if profile_photo is not None:
-            photo_side=min(round(g*.78),footer_height-2*footer_pad)
-            photo_box=p.reserve("footer-photo",(cursor,footer_y+footer_pad,cursor+photo_side,footer_y+footer_pad+photo_side),"footer","asset")
+            photo_side=footer_height-2*footer_pad
+            photo_top=round(footer_center-photo_side/2)
+            photo_box=p.reserve("footer-photo",(cursor,photo_top,cursor+photo_side,photo_top+photo_side),"footer","asset")
             p.squares.append(photo_box)
             photo=profile_photo.resize((photo_side,photo_side),Image.Resampling.LANCZOS)
             p.image.paste(photo,(photo_box[0],photo_box[1]))
@@ -975,26 +1120,47 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
         name=normalize(about.get("name",""))
         subtitle=normalize(about.get("subtitle",""))
         if name:
-            name_bottom=footer_y+footer_height*.52 if subtitle else h-footer_pad
-            p.text("footer-about-name",name,(cursor,footer_y+footer_pad,text_right,name_bottom),"footer",20,14,True,p.accent)
+            if subtitle:
+                available_height=footer_height-2*footer_pad
+                name_height=min(30,round(available_height*.52))
+                name_box=(cursor,footer_y+footer_pad,text_right,footer_y+footer_pad+name_height)
+            else:
+                name_box=(cursor,footer_y+footer_pad,text_right,h-footer_pad)
+            p.text("footer-about-name",name,name_box,"footer",22,15,True,p.accent,valign="center")
         if subtitle:
-            subtitle_top=footer_y+footer_height*.54 if name else footer_y+footer_pad
-            p.text("footer-about-subtitle",subtitle,(cursor,subtitle_top,text_right,h-footer_pad),"footer",14,11)
+            subtitle_top=name_box[3] if name else footer_y+footer_pad
+            p.text("footer-about-subtitle",subtitle,(cursor,subtitle_top,text_right,h-footer_pad),"footer",15,11,valign="center")
     else:
-        logo_box=(footer_pad,footer_y+footer_pad,footer_pad+logo_width,h-footer_pad)
+        logo_top=round(footer_center-logo_height/2)
+        logo_box=(footer_pad,logo_top,footer_pad+logo_width,logo_top+logo_height)
         p.asset("footer-aws-logo",f"assets/brand/aws-mark-{logo_variant}.png",logo_box,"footer")
-        counter_box=(w-footer_pad-counter_width,counter_top,w-footer_pad,counter_bottom)
-        p.text("page-number",f"{index+1:02d} / {total:02d}",counter_box,"footer",18,13,True,align="right")
+        if show_page_number:
+            counter_box=(w-footer_pad-counter_width,counter_top,w-footer_pad,counter_bottom)
+            p.text("page-number",f"{index+1:02d} / {total:02d}",counter_box,"footer",18,13,True,align="right")
 
     bottom=footer_y
     if content["cta"]:
         bottom-=g
         cta=p.panel("cta",(0,bottom,w,bottom+g),fill=p.accent)
         p.text("cta-text",content["cta"],inset(cta,pad),"cta",26,18,True,COLORS["ink"],"center")
-    p.reserve("content",(0,g,w,bottom))
-    total_rows=(bottom-g)//g; total_cols=w//g
+    # The compact header leaves enough vertical room for complete
+    # square cells immediately above the footer on portrait formats. Repaint
+    # the content grid from its real origin so every visible line still aligns
+    # with the packed blocks.
+    p.draw.rectangle((0,header_height,w-1,bottom-1),fill=p.bg)
+    if p.show_grid:
+        for x in p.grid_x:
+            if 0<x<w:
+                p.draw.line((x,header_height,x,bottom-1),fill=p.line,width=p.grid_line_width)
+    content_grid_y=list(range(header_height,bottom+1,g))
+    if p.show_grid:
+        for y in content_grid_y:
+            p.draw.line((0,y,w-1,y),fill=p.line,width=p.grid_line_width)
+    p.grid_y=sorted(set([0,*content_grid_y,footer_y,h]))
+    p.reserve("content",(0,header_height,w,bottom))
+    total_rows=(bottom-header_height)//g; total_cols=w//g
     rng=random.Random(spec["attemptSeed"])
-    blocks=block_options(p,content,total_cols,total_rows,spec,rng)
+    blocks=block_options(p,content,total_cols,total_rows,spec,rng,external_image)
     try:
         placements,occupied=pack_blocks(blocks,total_cols,total_rows,g,spec["componentGap"],spec["titlePosition"],rng,spec["compositionBias"])
     except ValueError:
@@ -1013,13 +1179,15 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
     p.title_icon_mode="attached" if placements["heading"][4]["iconCols"] else "none"
 
     for key,(cell_x,cell_y,cell_w,cell_h,meta,block) in sorted(placements.items(),key=lambda pair:(pair[1][1],pair[1][0])):
-        x=cell_x*g; y=g+cell_y*g; width=cell_w*g; height=cell_h*g
+        x=cell_x*g; y=header_height+cell_y*g; width=cell_w*g; height=cell_h*g
         raw_box=(x,y,x+width,y+height)
         if block["kind"]=="item-group": box=p.reserve(key,raw_box,"content")
         elif block["kind"]=="item": box=raw_box
         elif block["kind"]=="visual-mass":
             fill=p.accent if meta["treatment"]=="accent-field" else p.bg
             box=p.panel(key,raw_box,"content",fill=fill)
+        elif block["kind"]=="photograph":
+            box=p.reserve(key,raw_box,"content")
         else: box=p.panel(key,raw_box,"content")
         p.block_allocations.append({"name":key,"type":block["kind"],"column":cell_x,"row":cell_y,"columns":cell_w,"rows":cell_h})
         if block["kind"]=="title":
@@ -1053,10 +1221,12 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
             if p.component_rules:
                 p.component_rules[-1]["descriptionAttached"]=bool(description_rows)
         elif block["kind"]=="visual-mass":
-            side=min(width,height)*(.72 if meta["treatment"]!="accent-outline" else .86)
+            side=min(width,height)*.72
             icon_box=(x+(width-side)/2,y+(height-side)/2,x+(width+side)/2,y+(height+side)/2)
             variant="ink" if meta["treatment"]=="accent-field" else p.accent_name
             p.icon("visual-mass-icon",content["iconIntent"],icon_box,key,variant)
+        elif block["kind"]=="photograph":
+            render_external_image(p,external_image,box,key)
         elif block["kind"]=="item-group":
             description_rows=meta.get("descriptionRows",0)
             if description_rows:
@@ -1086,7 +1256,7 @@ def render_candidate(content,index,total,size,design,spec,about=None,profile_pho
 
 def _layout_blocks(page):
     return [block for block in page.block_allocations
-            if block["type"] in ("title","subtitle","visual","visual-mass","item-group")
+            if block["type"] in ("title","subtitle","visual","visual-mass","photograph","item-group")
             or (block["type"]=="item" and "listPattern" not in block)]
 
 
@@ -1121,7 +1291,7 @@ def layout_score(page):
     content_box=page.regions["content"]["box"]
     cols=round((content_box[2]-content_box[0])/page.g); rows=round((content_box[3]-content_box[1])/page.g)
     areas=[block["columns"]*block["rows"] for block in blocks]; total_area=sum(areas)
-    weights={"title":1.55,"subtitle":1.0,"item":1.0,"item-group":1.25,"visual":1.45,"visual-mass":1.9}
+    weights={"title":1.55,"subtitle":1.0,"item":1.0,"item-group":1.25,"visual":1.45,"visual-mass":1.9,"photograph":1.9}
     weighted=sum(area*weights[block["type"]] for block,area in zip(blocks,areas))
     cx=sum((block["column"]+block["columns"]/2)*area*weights[block["type"]] for block,area in zip(blocks,areas))/weighted/cols
     cy=sum((block["row"]+block["rows"]/2)*area*weights[block["type"]] for block,area in zip(blocks,areas))/weighted/rows
@@ -1170,7 +1340,7 @@ def layout_score(page):
     edge_score=max(0,1-abs(edge_contacts-1.5)/2.5)
     balance=max(0,1-abs(cx-.5)*2.25-abs(cy-.48)*1.35)
 
-    textual=[block for block in blocks if block["type"]!="visual-mass"]
+    textual=[block for block in blocks if block["type"] not in ("visual-mass","photograph")]
     if page.title_position=="top":
         vertical_valid=all(block is heading or block["row"]>=heading["row"]+heading["rows"]+page.component_gap for block in textual)
         reading_order=sorted(textual,key=lambda block:(block["row"],block["column"]))
@@ -1211,7 +1381,7 @@ def layout_score(page):
     if not (1<=len(clusters)<=4): decor_score*=.5
     color_score=1 if page.color_mode=="mono" and len(set(page.item_colors))==1 else min(1,len(set(page.item_colors))/4)
 
-    target_x=.88 if page.composition_bias.startswith("split-") or any(block["type"]=="visual-mass" for block in blocks) else min(.82,.48+.055*len(blocks))
+    target_x=.88 if page.composition_bias.startswith("split-") or any(block["type"] in ("visual-mass","photograph") for block in blocks) else min(.82,.48+.055*len(blocks))
     target_y=min(.88,.46+.065*len(blocks))
     coverage_score=max(0,1-abs(span_x-target_x)*1.35-abs(span_y-target_y)*1.1)
     breakdown={"readingFlow":reading_flow,"dominance":dominance,"hierarchy":hierarchy,"titleEconomy":title_economy,"contrast":contrast,
@@ -1263,7 +1433,7 @@ def _visual_signature(page):
     return json.dumps(data,sort_keys=True,separators=(",",":"))
 
 
-def render_page(content,index,total,size,design,seed=0,style=None,about=None,profile_photo=None,appearance="both"):
+def render_page(content,index,total,size,design,seed=0,style=None,about=None,profile_photo=None,appearance="both",external_image=None,show_grid=True):
     selection_seed=stable_seed(content,index,seed)
     style=style or campaign_style(seed or selection_seed)
     specs,rng=candidate_specs(content,size,selection_seed,style,appearance)
@@ -1271,7 +1441,7 @@ def render_page(content,index,total,size,design,seed=0,style=None,about=None,pro
     failures=[]
     for spec in specs:
         try:
-            page=render_candidate(content,index,total,size,design,spec,about,profile_photo)
+            page=render_candidate(content,index,total,size,design,spec,about,profile_photo,external_image,show_grid)
             page.layout_score=layout_score(page)
             signature=_visual_signature(page)
             layout="pack-"+hashlib.sha256(signature.encode()).hexdigest()[:10]
@@ -1328,8 +1498,10 @@ def render_campaign(draft, output, design):
     else:
         appearances=[requested_appearance]*len(draft["pages"])
     about={"enabled":brief.get("useAboutFooter",False),"name":brief.get("aboutName",""),"subtitle":brief.get("aboutSubtitle","")}
+    show_grid=brief.get("showGrid") is not False
     profile_photo=decode_profile_photo(brief.get("aboutPhoto",""))
-    pages=[render_page(page,i,len(draft["pages"]),size,Path(design),seed,style,about,profile_photo,appearances[i]) for i,page in enumerate(draft["pages"])]
+    external_images=decode_external_images(brief.get("images",[]))
+    pages=[render_page(page,i,len(draft["pages"]),size,Path(design),seed,style,about,profile_photo,appearances[i],external_images.get(page.get("imageId","")),show_grid) for i,page in enumerate(draft["pages"])]
     # Validate the whole campaign before publishing any asset.
     output.mkdir(parents=True,exist_ok=True)
     files=[]

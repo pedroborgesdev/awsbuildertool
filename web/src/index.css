@@ -21,3 +21,8 @@
 @keyframes loading-sweep {
   to { background-position-x: -220%; }
 }
+
+@keyframes popup-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}

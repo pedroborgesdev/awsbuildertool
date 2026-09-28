@@ -2,8 +2,11 @@ package httpapi
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"image"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +15,15 @@ import (
 	"github.com/pedroborges/universal-post-creator/internal/config"
 	"github.com/pedroborges/universal-post-creator/internal/domain"
 )
+
+func contentImageDataURL(t *testing.T) string {
+	t.Helper()
+	var output bytes.Buffer
+	if err := jpeg.Encode(&output, image.NewRGBA(image.Rect(0, 0, 320, 240)), &jpeg.Options{Quality: 80}); err != nil {
+		t.Fatal(err)
+	}
+	return "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(output.Bytes())
+}
 
 func TestContentReviewAndRenderEndpoints(t *testing.T) {
 	cfg := config.Config{HFModel: "mock", MockHF: true, PythonBin: "python3", DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), WebDist: t.TempDir()}
@@ -57,5 +69,34 @@ func TestContentReviewAndRenderEndpoints(t *testing.T) {
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/render", bytes.NewReader(payload)))
 	if response.Code != 422 {
 		t.Fatal("invalid draft accepted")
+	}
+}
+
+func TestContentEndpointAnalyzesAndAssignsUploadedImageInMockMode(t *testing.T) {
+	cfg := config.Config{HFModel: "mock", HFVisionModel: "mock-vision", MockHF: true, PythonBin: "python3", DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), WebDist: t.TempDir()}
+	server := New(cfg, testLogger())
+	request := map[string]any{
+		"theme": "Community", "goal": "Show collaboration", "platform": "instagram-square", "postCount": 2,
+		"additionalContext": strings.Repeat("a", 400),
+		"images": []any{map[string]any{"id": "image-1", "name": "people.jpg", "dataUrl": contentImageDataURL(t), "analysis": map[string]any{
+			"description": "", "subjects": []any{}, "mood": "", "composition": "", "relevantCells": []any{},
+			"focusRect": map[string]any{"x": 0, "y": 0, "width": 0, "height": 0}, "safeTextAreas": []any{}, "cropTolerance": "", "confidence": 0,
+		}}},
+	}
+	payload, _ := json.Marshal(request)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/content", bytes.NewReader(payload)))
+	if response.Code != http.StatusOK {
+		t.Fatal(response.Body.String())
+	}
+	var content domain.ContentResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &content); err != nil {
+		t.Fatal(err)
+	}
+	if content.Draft.Brief.Images[0].Analysis.Description == "" || content.Draft.Pages[0].ImageID != "image-1" || content.Draft.Pages[0].ImageRole != "hero" {
+		t.Fatalf("image pipeline was not applied: %#v", content.Draft)
+	}
+	if strings.Contains(content.Prompt, content.Draft.Brief.Images[0].DataURL) || !strings.Contains(content.Prompt, `"imageId"`) {
+		t.Fatal("prompt leaked image bytes or omitted the assignment contract")
 	}
 }

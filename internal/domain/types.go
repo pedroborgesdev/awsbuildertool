@@ -7,29 +7,63 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"math"
+	"regexp"
 	"strings"
 )
 
+const MaxExternalImages = 5
+
+var externalImageID = regexp.MustCompile(`^image-[1-5]$`)
+
+type NormalizedRect struct {
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Width  float64 `json:"width"`
+	Height float64 `json:"height"`
+}
+
+type ImageAnalysis struct {
+	Description   string         `json:"description"`
+	Subjects      []string       `json:"subjects"`
+	Mood          string         `json:"mood"`
+	Composition   string         `json:"composition"`
+	RelevantCells []string       `json:"relevantCells"`
+	FocusRect     NormalizedRect `json:"focusRect"`
+	SafeTextAreas []string       `json:"safeTextAreas"`
+	CropTolerance string         `json:"cropTolerance"`
+	Confidence    float64        `json:"confidence"`
+}
+
+type ExternalImage struct {
+	ID       string        `json:"id"`
+	Name     string        `json:"name"`
+	DataURL  string        `json:"dataUrl"`
+	Analysis ImageAnalysis `json:"analysis"`
+}
+
 type GenerateRequest struct {
-	UseAboutFooter    bool   `json:"useAboutFooter"`
-	AboutName         string `json:"aboutName"`
-	AboutSubtitle     string `json:"aboutSubtitle"`
-	AboutPhoto        string `json:"aboutPhoto"`
-	ColorTheme        string `json:"colorTheme"`
-	PageTheme         string `json:"pageTheme"`
-	Theme             string `json:"theme"`
-	Goal              string `json:"goal"`
-	Audience          string `json:"audience"`
-	Platform          string `json:"platform"`
-	PostCount         int    `json:"postCount"`
-	ContentLevel      string `json:"contentLevel"`
-	Tone              string `json:"tone"`
-	Language          string `json:"language"`
-	CTA               string `json:"cta"`
-	FirstPageCTA      bool   `json:"firstPageCta"`
-	LastPageCTA       bool   `json:"lastPageCta"`
-	AdditionalContext string `json:"additionalContext"`
-	Model             string `json:"model"`
+	UseAboutFooter    bool            `json:"useAboutFooter"`
+	AboutName         string          `json:"aboutName"`
+	AboutSubtitle     string          `json:"aboutSubtitle"`
+	AboutPhoto        string          `json:"aboutPhoto"`
+	ColorTheme        string          `json:"colorTheme"`
+	PageTheme         string          `json:"pageTheme"`
+	ShowGrid          *bool           `json:"showGrid,omitempty"`
+	Theme             string          `json:"theme"`
+	Goal              string          `json:"goal"`
+	Audience          string          `json:"audience"`
+	Platform          string          `json:"platform"`
+	PostCount         int             `json:"postCount"`
+	ContentLevel      string          `json:"contentLevel"`
+	Tone              string          `json:"tone"`
+	Language          string          `json:"language"`
+	CTA               string          `json:"cta"`
+	FirstPageCTA      bool            `json:"firstPageCta"`
+	LastPageCTA       bool            `json:"lastPageCta"`
+	AdditionalContext string          `json:"additionalContext"`
+	Model             string          `json:"model"`
+	Images            []ExternalImage `json:"images"`
 }
 
 type Format struct {
@@ -77,6 +111,10 @@ func (r *GenerateRequest) Normalize(defaultModel string) {
 	r.CTA = strings.TrimSpace(r.CTA)
 	r.AdditionalContext = strings.TrimSpace(r.AdditionalContext)
 	r.Model = strings.TrimSpace(r.Model)
+	for index := range r.Images {
+		r.Images[index].ID = strings.TrimSpace(r.Images[index].ID)
+		r.Images[index].Name = strings.TrimSpace(r.Images[index].Name)
+	}
 	if r.Language == "" {
 		r.Language = "English"
 	}
@@ -121,6 +159,30 @@ func (r GenerateRequest) Validate() error {
 			return fmt.Errorf("cropped photo must be exactly 1080x1080 pixels")
 		}
 	}
+	if len(r.Images) > MaxExternalImages {
+		return fmt.Errorf("at most %d content images are allowed", MaxExternalImages)
+	}
+	if len(r.Images) > r.PostCount {
+		return fmt.Errorf("the page count must be at least the number of content images")
+	}
+	seenImages := map[string]bool{}
+	for index, item := range r.Images {
+		if !externalImageID.MatchString(item.ID) || seenImages[item.ID] {
+			return fmt.Errorf("content image %d has an invalid or duplicate id", index+1)
+		}
+		seenImages[item.ID] = true
+		if strings.TrimSpace(item.Name) == "" || len([]rune(item.Name)) > 180 {
+			return fmt.Errorf("content image %d needs a name of at most 180 characters", index+1)
+		}
+		if err := validateExternalImageData(item.DataURL); err != nil {
+			return fmt.Errorf("content image %d: %w", index+1, err)
+		}
+		if item.Analysis.Description != "" {
+			if err := ValidateImageAnalysis(item.Analysis); err != nil {
+				return fmt.Errorf("content image %d analysis: %w", index+1, err)
+			}
+		}
+	}
 	if r.ColorTheme != "" && !ColorThemes[r.ColorTheme] {
 		return fmt.Errorf("theme color must be pink, green, blue, orange, purple, or colorful")
 	}
@@ -149,6 +211,66 @@ func (r GenerateRequest) Validate() error {
 		return fmt.Errorf("CTA must be at most 280 characters")
 	}
 	return nil
+}
+
+func validateExternalImageData(value string) error {
+	parts := strings.SplitN(value, ",", 2)
+	if len(parts) != 2 || (parts[0] != "data:image/jpeg;base64" && parts[0] != "data:image/png;base64") {
+		return fmt.Errorf("file must be JPEG or PNG")
+	}
+	data, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil || len(data) == 0 || len(data) > 3<<20 {
+		return fmt.Errorf("file is invalid or exceeds 3 MB")
+	}
+	config, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || (format != "jpeg" && format != "png") {
+		return fmt.Errorf("file contents are not a valid JPEG or PNG")
+	}
+	if config.Width < 64 || config.Height < 64 || config.Width > 2048 || config.Height > 2048 || int64(config.Width)*int64(config.Height) > 4_000_000 {
+		return fmt.Errorf("dimensions must be between 64 and 2048 pixels and at most 4 megapixels")
+	}
+	return nil
+}
+
+func ValidateImageAnalysis(value ImageAnalysis) error {
+	if strings.TrimSpace(value.Description) == "" || len([]rune(value.Description)) > 700 {
+		return fmt.Errorf("description is required and must be at most 700 characters")
+	}
+	if len(value.Subjects) > 12 || len(value.SafeTextAreas) > 6 {
+		return fmt.Errorf("too many subjects or safe text areas")
+	}
+	if value.CropTolerance != "low" && value.CropTolerance != "medium" && value.CropTolerance != "high" {
+		return fmt.Errorf("cropTolerance must be low, medium, or high")
+	}
+	if math.IsNaN(value.Confidence) || value.Confidence < 0 || value.Confidence > 1 {
+		return fmt.Errorf("confidence must be between 0 and 1")
+	}
+	r := value.FocusRect
+	if math.IsNaN(r.X) || math.IsNaN(r.Y) || math.IsNaN(r.Width) || math.IsNaN(r.Height) || r.X < 0 || r.Y < 0 || r.Width <= 0 || r.Height <= 0 || r.X+r.Width > 1.000001 || r.Y+r.Height > 1.000001 {
+		return fmt.Errorf("focusRect must be inside normalized image coordinates")
+	}
+	if !CellsFormRectangle(value.RelevantCells) {
+		return fmt.Errorf("relevantCells must form one complete rectangle in the 3 by 2 grid")
+	}
+	return nil
+}
+
+func CellsFormRectangle(cells []string) bool {
+	if len(cells) == 0 {
+		return false
+	}
+	seen := map[string]bool{}
+	minCol, maxCol, minRow, maxRow := 3, -1, 2, -1
+	for _, cell := range cells {
+		if len(cell) != 2 || cell[0] < 'A' || cell[0] > 'B' || cell[1] < '1' || cell[1] > '3' || seen[cell] {
+			return false
+		}
+		seen[cell] = true
+		row, col := int(cell[0]-'A'), int(cell[1]-'1')
+		minCol, maxCol = min(minCol, col), max(maxCol, col)
+		minRow, maxRow = min(minRow, row), max(maxRow, row)
+	}
+	return len(seen) == (maxCol-minCol+1)*(maxRow-minRow+1)
 }
 
 type GenerateResponse struct {

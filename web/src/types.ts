@@ -14,6 +14,25 @@ export type PageTheme = 'dark' | 'light' | 'both'
 export type AppView = 'landing' | 'create' | 'result'
 export type Accent = 'pink' | 'green' | 'orange' | 'blue'
 
+export interface NormalizedRect { x: number; y: number; width: number; height: number }
+export interface ImageAnalysis {
+  description: string
+  subjects: string[]
+  mood: string
+  composition: string
+  relevantCells: string[]
+  focusRect: NormalizedRect
+  safeTextAreas: string[]
+  cropTolerance: 'low' | 'medium' | 'high' | ''
+  confidence: number
+}
+export interface ExternalImage {
+  id: string
+  name: string
+  dataUrl: string
+  analysis: ImageAnalysis
+}
+
 export interface GenerateRequest {
   useAboutFooter: boolean
   aboutName: string
@@ -21,6 +40,7 @@ export interface GenerateRequest {
   aboutPhoto: string
   colorTheme: ColorTheme
   pageTheme: PageTheme
+  showGrid: boolean
   theme: string
   goal: string
   audience: string
@@ -34,6 +54,7 @@ export interface GenerateRequest {
   lastPageCta: boolean
   additionalContext: string
   model: string
+  images: ExternalImage[]
 }
 
 export interface GenerateResponse {
@@ -92,6 +113,8 @@ export interface PageContent {
   items: Array<{ title: string; text: string; iconIntent: string; value?: number }>
   cta: string
   iconIntent: string
+  imageId: string
+  imageRole: '' | 'hero' | 'support' | 'background' | 'portrait' | 'evidence'
 }
 export interface CampaignDraft {
   version: number

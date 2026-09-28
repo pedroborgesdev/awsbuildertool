@@ -130,6 +130,43 @@ func TestGenerateInMockMode(t *testing.T) {
 	}
 }
 
+func TestGenerateWithFiveUploadedImagesInMockMode(t *testing.T) {
+	cfg := config.Config{
+		HFModel: "mock/model", HFVisionModel: "mock/vision", HFBaseURL: "http://example.invalid", HFMaxTokens: 1000,
+		DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), PythonBin: "python3",
+		WebDist: filepath.Join(t.TempDir(), "missing"), MockHF: true,
+	}
+	server := New(cfg, testLogger())
+	images := make([]map[string]any, 5)
+	for index := range images {
+		images[index] = map[string]any{
+			"id": fmt.Sprintf("image-%d", index+1), "name": fmt.Sprintf("photo-%d.jpg", index+1), "dataUrl": contentImageDataURL(t),
+			"analysis": map[string]any{"description": "", "subjects": []any{}, "mood": "", "composition": "", "relevantCells": []any{}, "focusRect": map[string]any{"x": 0, "y": 0, "width": 0, "height": 0}, "safeTextAreas": []any{}, "cropTolerance": "", "confidence": 0},
+		}
+	}
+	body := map[string]any{
+		"theme": "Community", "goal": "Show collaboration", "platform": "instagram-portrait", "postCount": 5,
+		"additionalContext": strings.Repeat("a", 400), "images": images,
+	}
+	payload, _ := json.Marshal(body)
+	status, raw := awaitGeneration(t, server, payload)
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", status, raw)
+	}
+	var result domain.GenerateResponse
+	if err := json.Unmarshal(raw, &result); err != nil {
+		t.Fatal(err)
+	}
+	for index, page := range result.Draft.Pages {
+		if page.ImageID != fmt.Sprintf("image-%d", index+1) {
+			t.Fatalf("page %d did not receive its image: %#v", index+1, page)
+		}
+	}
+	if len(result.Files) != 7 {
+		t.Fatalf("unexpected generated files: %d", len(result.Files))
+	}
+}
+
 func TestGenerateRetriesRenderingWithoutRegeneratingContent(t *testing.T) {
 	cfg := config.Config{HFModel: "mock/model", DesignSystemDir: "../../design_system", GeneratedDir: t.TempDir(), WebDist: t.TempDir(), MockHF: true}
 	server := New(cfg, testLogger())
@@ -186,7 +223,7 @@ func awaitGeneration(t *testing.T, server *Server, body []byte) (int, []byte) {
 	if err := json.Unmarshal(response.Body.Bytes(), &accepted); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(8 * time.Second)
+	deadline := time.Now().Add(20 * time.Second)
 	for {
 		poll := httptest.NewRecorder()
 		server.Handler().ServeHTTP(poll, httptest.NewRequest(http.MethodGet, "/api/generations/"+accepted.ID, nil))
