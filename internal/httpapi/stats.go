@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	mathrand "math/rand/v2"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -226,9 +227,8 @@ func selectRecentCampaignImages(images []communityImage, limit int, now time.Tim
 		return campaigns[i].generatedAt.After(campaigns[j].generatedAt)
 	})
 
-	// Prefer only work from the last three days. If that window cannot fill the
-	// carousel, the remaining campaigns are taken from the immediately preceding
-	// dates, always newest first.
+	// Draw randomly from work created in the last three days. If that window
+	// cannot fill the carousel, add only the nearest older campaigns.
 	cutoff := now.Add(-communityRecentWindow)
 	recent := make([]*communityCampaign, 0, limit)
 	older := make([]*communityCampaign, 0, len(campaigns))
@@ -239,6 +239,9 @@ func selectRecentCampaignImages(images []communityImage, limit int, now time.Tim
 			older = append(older, campaign)
 		}
 	}
+	mathrand.Shuffle(len(recent), func(i, j int) {
+		recent[i], recent[j] = recent[j], recent[i]
+	})
 	selectedCampaigns := make([]*communityCampaign, 0, limit)
 	recentLimit := min(len(recent), limit)
 	selectedCampaigns = append(selectedCampaigns, recent[:recentLimit]...)
@@ -246,6 +249,9 @@ func selectRecentCampaignImages(images []communityImage, limit int, now time.Tim
 	if remaining > 0 {
 		selectedCampaigns = append(selectedCampaigns, older[:min(len(older), remaining)]...)
 	}
+	mathrand.Shuffle(len(selectedCampaigns), func(i, j int) {
+		selectedCampaigns[i], selectedCampaigns[j] = selectedCampaigns[j], selectedCampaigns[i]
+	})
 	selected := make([]communityImage, 0)
 	for _, campaign := range selectedCampaigns {
 		selected = append(selected, campaign.pages...)

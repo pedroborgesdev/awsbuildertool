@@ -24,7 +24,10 @@ export function getStats(): Promise<SiteStats> {
 }
 
 export async function getCommunityImages(signal?: AbortSignal): Promise<CommunityImage[]> {
-  const result = await request<{ images: CommunityImage[] }>('/api/community-images', { signal })
+  const result = await request<{ images: CommunityImage[] }>('/api/community-images', {
+    signal,
+    cache: 'no-store',
+  })
   return result.images
 }
 

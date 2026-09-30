@@ -154,27 +154,44 @@ func TestSelectRecentCampaignImagesPrefersLastThreeDaysAndFillsFromOlder(t *test
 	}
 
 	selected := selectRecentCampaignImages(images, 4, now)
-	want := []string{
-		"recent-newest/page-01.png",
-		"recent-newest/page-02.png",
-		"recent-second/page-01.png",
-		"older-nearest/page-01.png",
-		"older-next/page-01.png",
+	want := map[string]bool{
+		"recent-newest/page-01.png": true,
+		"recent-newest/page-02.png": true,
+		"recent-second/page-01.png": true,
+		"older-nearest/page-01.png": true,
+		"older-next/page-01.png":    true,
 	}
 	if len(selected) != len(want) {
 		t.Fatalf("selected %d images, want %d: %+v", len(selected), len(want), selected)
 	}
-	for index, id := range want {
-		if selected[index].ID != id {
-			t.Fatalf("selected[%d] = %q, want %q", index, selected[index].ID, id)
+	seen := make(map[string]bool, len(selected))
+	for _, image := range selected {
+		if !want[image.ID] {
+			t.Fatalf("unexpected image %q in selection: %+v", image.ID, selected)
 		}
+		if seen[image.ID] {
+			t.Fatalf("duplicate image %q in selection: %+v", image.ID, selected)
+		}
+		seen[image.ID] = true
+	}
+	pageOne, pageTwo := -1, -1
+	for index, image := range selected {
+		switch image.ID {
+		case "recent-newest/page-01.png":
+			pageOne = index
+		case "recent-newest/page-02.png":
+			pageTwo = index
+		}
+	}
+	if pageTwo != pageOne+1 {
+		t.Fatalf("campaign pages are not contiguous and ordered: %+v", selected)
 	}
 }
 
 func TestSelectRecentCampaignImagesDoesNotUseOlderWhenWindowIsFull(t *testing.T) {
 	now := time.Date(2026, time.September, 30, 12, 0, 0, 0, time.UTC)
-	images := make([]communityImage, 0, 5)
-	for campaign, age := range []time.Duration{time.Hour, 12 * time.Hour, 24 * time.Hour, 48 * time.Hour} {
+	images := make([]communityImage, 0, 7)
+	for campaign, age := range []time.Duration{time.Hour, 6 * time.Hour, 12 * time.Hour, 24 * time.Hour, 36 * time.Hour, 48 * time.Hour} {
 		id := fmt.Sprintf("recent-%d", campaign)
 		images = append(images, communityImage{ID: id + "/page-01.png", generatedAt: now.Add(-age)})
 	}
