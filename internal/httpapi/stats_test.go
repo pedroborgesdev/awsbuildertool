@@ -135,6 +135,62 @@ func TestCommunityImagesReturnsOnlyPageImages(t *testing.T) {
 	}
 }
 
+func TestSelectRecentCampaignImagesPrefersLastThreeDaysAndFillsFromOlder(t *testing.T) {
+	now := time.Date(2026, time.September, 30, 12, 0, 0, 0, time.UTC)
+	image := func(campaign, page string, age time.Duration) communityImage {
+		return communityImage{
+			ID:          campaign + "/" + page,
+			URL:         "/" + campaign + "/" + page,
+			generatedAt: now.Add(-age),
+		}
+	}
+	images := []communityImage{
+		image("recent-newest", "page-02.png", 2*time.Hour),
+		image("recent-newest", "page-01.png", 2*time.Hour),
+		image("recent-second", "page-01.png", 48*time.Hour),
+		image("older-nearest", "page-01.png", 4*24*time.Hour),
+		image("older-next", "page-01.png", 8*24*time.Hour),
+		image("older-last", "page-01.png", 12*24*time.Hour),
+	}
+
+	selected := selectRecentCampaignImages(images, 4, now)
+	want := []string{
+		"recent-newest/page-01.png",
+		"recent-newest/page-02.png",
+		"recent-second/page-01.png",
+		"older-nearest/page-01.png",
+		"older-next/page-01.png",
+	}
+	if len(selected) != len(want) {
+		t.Fatalf("selected %d images, want %d: %+v", len(selected), len(want), selected)
+	}
+	for index, id := range want {
+		if selected[index].ID != id {
+			t.Fatalf("selected[%d] = %q, want %q", index, selected[index].ID, id)
+		}
+	}
+}
+
+func TestSelectRecentCampaignImagesDoesNotUseOlderWhenWindowIsFull(t *testing.T) {
+	now := time.Date(2026, time.September, 30, 12, 0, 0, 0, time.UTC)
+	images := make([]communityImage, 0, 5)
+	for campaign, age := range []time.Duration{time.Hour, 12 * time.Hour, 24 * time.Hour, 48 * time.Hour} {
+		id := fmt.Sprintf("recent-%d", campaign)
+		images = append(images, communityImage{ID: id + "/page-01.png", generatedAt: now.Add(-age)})
+	}
+	images = append(images, communityImage{ID: "older/page-01.png", generatedAt: now.Add(-4 * 24 * time.Hour)})
+
+	selected := selectRecentCampaignImages(images, 4, now)
+	if len(selected) != 4 {
+		t.Fatalf("selected %d images: %+v", len(selected), selected)
+	}
+	for _, image := range selected {
+		if strings.HasPrefix(image.ID, "older/") {
+			t.Fatalf("older campaign was selected even though the recent window was full: %+v", selected)
+		}
+	}
+}
+
 func readStats(t *testing.T, server *Server) (int, int) {
 	t.Helper()
 	response := httptest.NewRecorder()

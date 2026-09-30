@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	mathrand "math/rand/v2"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +14,8 @@ import (
 )
 
 const visitorCookie = "builder_visitor"
+
+const communityRecentWindow = 3 * 24 * time.Hour
 
 type siteStats struct {
 	dir           string
@@ -29,8 +30,9 @@ type siteStats struct {
 }
 
 type communityImage struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID          string    `json:"id"`
+	URL         string    `json:"url"`
+	generatedAt time.Time `json:"-"`
 }
 
 func newSiteStats(dir string) *siteStats {
@@ -164,16 +166,21 @@ func findPageImages(root string) []communityImage {
 		if len(parts) != 3 || !jobIDPattern.MatchString(parts[0]) || parts[1] != "output" {
 			return nil
 		}
+		info, err := entry.Info()
+		if err != nil {
+			return nil
+		}
 		images = append(images, communityImage{
-			ID:  parts[0] + "/" + name,
-			URL: "/api/jobs/" + parts[0] + "/files/output/" + name,
+			ID:          parts[0] + "/" + name,
+			URL:         "/api/jobs/" + parts[0] + "/files/output/" + name,
+			generatedAt: info.ModTime(),
 		})
 		return nil
 	})
 	return images
 }
 
-func (s *siteStats) randomCampaignImages(limit int) []communityImage {
+func (s *siteStats) recentCampaignImages(limit int) []communityImage {
 	select {
 	case <-s.ready:
 	case <-time.After(2 * time.Second):
@@ -181,29 +188,67 @@ func (s *siteStats) randomCampaignImages(limit int) []communityImage {
 	s.mu.RLock()
 	images := append([]communityImage(nil), s.pageImages...)
 	s.mu.RUnlock()
+	return selectRecentCampaignImages(images, limit, time.Now())
+}
+
+type communityCampaign struct {
+	id          string
+	generatedAt time.Time
+	pages       []communityImage
+}
+
+func selectRecentCampaignImages(images []communityImage, limit int, now time.Time) []communityImage {
 	if limit < 1 || limit > 4 {
 		limit = 4
 	}
-	byCampaign := make(map[string][]communityImage)
-	campaigns := make([]string, 0)
+	byCampaign := make(map[string]*communityCampaign)
 	for _, image := range images {
 		campaignID := strings.SplitN(image.ID, "/", 2)[0]
-		if _, exists := byCampaign[campaignID]; !exists {
-			campaigns = append(campaigns, campaignID)
+		campaign, exists := byCampaign[campaignID]
+		if !exists {
+			campaign = &communityCampaign{id: campaignID}
+			byCampaign[campaignID] = campaign
 		}
-		byCampaign[campaignID] = append(byCampaign[campaignID], image)
+		campaign.pages = append(campaign.pages, image)
+		if image.generatedAt.After(campaign.generatedAt) {
+			campaign.generatedAt = image.generatedAt
+		}
 	}
-	mathrand.Shuffle(len(campaigns), func(i, j int) {
-		campaigns[i], campaigns[j] = campaigns[j], campaigns[i]
+	campaigns := make([]*communityCampaign, 0, len(byCampaign))
+	for _, campaign := range byCampaign {
+		sort.Slice(campaign.pages, func(i, j int) bool { return campaign.pages[i].ID < campaign.pages[j].ID })
+		campaigns = append(campaigns, campaign)
+	}
+	sort.Slice(campaigns, func(i, j int) bool {
+		if campaigns[i].generatedAt.Equal(campaigns[j].generatedAt) {
+			return campaigns[i].id > campaigns[j].id
+		}
+		return campaigns[i].generatedAt.After(campaigns[j].generatedAt)
 	})
-	if len(campaigns) > limit {
-		campaigns = campaigns[:limit]
+
+	// Prefer only work from the last three days. If that window cannot fill the
+	// carousel, the remaining campaigns are taken from the immediately preceding
+	// dates, always newest first.
+	cutoff := now.Add(-communityRecentWindow)
+	recent := make([]*communityCampaign, 0, limit)
+	older := make([]*communityCampaign, 0, len(campaigns))
+	for _, campaign := range campaigns {
+		if !campaign.generatedAt.Before(cutoff) {
+			recent = append(recent, campaign)
+		} else {
+			older = append(older, campaign)
+		}
+	}
+	selectedCampaigns := make([]*communityCampaign, 0, limit)
+	recentLimit := min(len(recent), limit)
+	selectedCampaigns = append(selectedCampaigns, recent[:recentLimit]...)
+	remaining := limit - len(selectedCampaigns)
+	if remaining > 0 {
+		selectedCampaigns = append(selectedCampaigns, older[:min(len(older), remaining)]...)
 	}
 	selected := make([]communityImage, 0)
-	for _, campaignID := range campaigns {
-		pages := byCampaign[campaignID]
-		sort.Slice(pages, func(i, j int) bool { return pages[i].ID < pages[j].ID })
-		selected = append(selected, pages...)
+	for _, campaign := range selectedCampaigns {
+		selected = append(selected, campaign.pages...)
 	}
 	return selected
 }
@@ -215,7 +260,7 @@ func (s *Server) stats(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) communityImages(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, map[string][]communityImage{"images": s.site.randomCampaignImages(4)})
+	writeJSON(w, http.StatusOK, map[string][]communityImage{"images": s.site.recentCampaignImages(4)})
 }
 
 func (s *Server) trackVisitors(next http.Handler) http.Handler {
