@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from PIL import Image
-from engine import Page, FORMATS, COLORS, icon_mask, render_campaign, render_page, render_decorative_branches, normalize, wrap, font_path, face, overlap, campaign_style, candidate_specs, block_options, frame_geometry, content_top_clearance_rows
+from engine import Page, FORMATS, COLORS, icon_mask, render_campaign, render_page, render_decorative_branches, normalize, wrap, font_path, face, overlap, campaign_style, candidate_specs, block_options, frame_geometry, content_top_clearance_rows, decode_external_images, render_external_image
 
 
 def campaign(platform="instagram-square", seed=424242):
@@ -514,6 +514,27 @@ class EngineTests(unittest.TestCase):
         empty.panel("gridless-square",(empty.g,empty.g,2*empty.g,2*empty.g),fill=empty.accent,square=True)
         self.assertEqual(empty.image.getpixel((empty.g,empty.g)),tuple(bytes.fromhex(empty.accent[1:])))
         self.assertEqual(empty.image.getpixel((empty.g//2,empty.g)),tuple(bytes.fromhex(empty.bg[1:])))
+
+    def test_transparent_external_image_uses_the_page_theme_background(self):
+        source=Image.new("RGBA",(100,100),(0,0,0,0))
+        for x in range(25,75):
+            for y in range(25,75):
+                source.putpixel((x,y),(217,119,87,255))
+        encoded=io.BytesIO()
+        source.save(encoded,"PNG")
+        external=decode_external_images([{
+            "id":"image-1","name":"transparent.png",
+            "dataUrl":"data:image/png;base64,"+base64.b64encode(encoded.getvalue()).decode(),
+            "analysis":{"focusRect":{"x":0,"y":0,"width":1,"height":1},"relevantCells":[]},
+        }])["image-1"]
+        self.assertEqual(external["image"].mode,"RGBA")
+        for dark,background in ((True,COLORS["ink"]),(False,COLORS["paper"])):
+            with self.subTest(dark=dark):
+                page=Page(1080,1080,dark,self.design,1,"blue",False)
+                page.panel("content",(0,0,1080,1080))
+                render_external_image(page,external,(0,0,1080,1080),"content")
+                self.assertEqual(page.image.getpixel((20,20)),tuple(bytes.fromhex(background[1:])))
+                self.assertEqual(page.image.getpixel((540,540)),(217,119,87))
 
     def test_footer_without_about_places_logo_left_and_counter_right(self):
         draft=campaign("instagram-square",8181)

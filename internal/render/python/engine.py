@@ -18,7 +18,7 @@ import unicodedata
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
 
-VERSION = "5.7.0"
+VERSION = "5.7.1"
 FORMATS = {
     "instagram-portrait": (1080, 1350), "instagram-square": (1080, 1080),
     "instagram-story": (1080, 1920), "linkedin-portrait": (1080, 1350),
@@ -1074,7 +1074,7 @@ def decode_external_images(images):
             with Image.open(io.BytesIO(base64.b64decode(encoded,validate=True))) as source:
                 source.load()
                 if source.width<64 or source.height<64 or source.width>2048 or source.height>2048 or source.width*source.height>4000000: raise ValueError
-                decoded[item["id"]]={"image":source.convert("RGB"),"analysis":item["analysis"],"name":item.get("name","")}
+                decoded[item["id"]]={"image":source.convert("RGBA"),"analysis":item["analysis"],"name":item.get("name","")}
         except Exception as error:
             raise ValueError(f"Invalid content image: {item.get('id','unknown')}") from error
     return decoded
@@ -1116,7 +1116,10 @@ def render_external_image(p, external_image, box, parent):
         top=max(0,min(top,fy)); top=min(source.height-crop_h,max(top,fy+fh-crop_h))
     crop=(round(left),round(top),round(left+crop_w),round(top+crop_h))
     rendered=source.crop(crop).resize((width,height),Image.Resampling.LANCZOS)
-    p.image.paste(rendered,(paste_x,paste_y))
+    if rendered.mode=="RGBA":
+        p.image.paste(rendered,(paste_x,paste_y),rendered)
+    else:
+        p.image.paste(rendered,(paste_x,paste_y))
     p.image_crop={"source":external_image.get("name",""),"box":box,"sourceCrop":crop,"mode":mode,
                   "focusRect":focus,"relevantCells":cells}
 

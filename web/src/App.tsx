@@ -35,11 +35,22 @@ async function normalizeContentImage(file: File): Promise<string> {
   canvas.height = height
   const context = canvas.getContext('2d')
   if (!context) throw new Error('Canvas is unavailable.')
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, width, height)
   context.drawImage(bitmap, 0, 0, width, height)
   bitmap.close()
-  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Image conversion failed.')), 'image/jpeg', .88))
+  const pixels = context.getImageData(0, 0, width, height).data
+  let hasTransparency = false
+  for (let index = 3; index < pixels.length; index += 4) {
+    if (pixels[index] < 255) {
+      hasTransparency = true
+      break
+    }
+  }
+  const mediaType = hasTransparency ? 'image/png' : 'image/jpeg'
+  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
+    (value) => value ? resolve(value) : reject(new Error('Image conversion failed.')),
+    mediaType,
+    hasTransparency ? undefined : .88,
+  ))
   if (blob.size > 3 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE')
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
